@@ -1,0 +1,22 @@
+Thumbs.db
+.DS_Store
+
+# Backend
+trust-platform/trust-backend/target/
+trust-platform/trust-backend/.mvn/
+*.class
+
+# Frontend
+trust-platform/trust-frontend/node_modules/
+trust-platform/trust-frontend/dist/
+trust-platform/trust-frontend/.vite/
+trust-platform/trust-frontend/tsconfig.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Env
+.env
+.env.local

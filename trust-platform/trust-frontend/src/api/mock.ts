@@ -1,0 +1,54 @@
+import type { DashboardResponse } from './client';
+
+export const mockDashboard: DashboardResponse = {
+  salesToday: 86430,
+  salesChangePercent: 12.6,
+  totalProfit: 28650,
+  profitChangePercent: 8.7,
+  marginPercent: 33.1,
+  marginChangePercent: 2.1,
+  availableLiquidity: 415680,
+  liquidityChangePercent: -6.3,
+  healthScore: {
+    salesScore: 80,
+    profitScore: 82,
+    pricingScore: 81,
+    purchasesScore: 72,
+    inventoryScore: 65,
+    liquidityScore: 78,
+    totalScore: 78,
+    label: 'جيد',
+  },
+  salesTrend: [
+    { date: '2026-06-24', sales: 68000 },
+    { date: '2026-06-25', sales: 74500 },
+    { date: '2026-06-26', sales: 89200 },
+    { date: '2026-06-27', sales: 94800 },
+    { date: '2026-06-28', sales: 90600 },
+    { date: '2026-06-29', sales: 95300 },
+    { date: '2026-06-30', sales: 86430 },
+  ],
+  topRecommendations: [
+    { id: 1, type: 'STOP_PURCHASE', priority: 'HIGH', title: 'أوقف شراء 12 صنف — مخزون راكد يكلفك 125,000 شيكل', expectedValue: 125000, status: 'OPEN' },
+    { id: 2, type: 'INCREASE_ORDER', priority: 'HIGH', title: 'زد طلب 8 أصناف رابحة — فرصة لزيادة الربح 48,500 شيكل', expectedValue: 48500, status: 'OPEN' },
+    { id: 3, type: 'ADJUST_PRICE', priority: 'MEDIUM', title: 'عدّل سعر 15 صنف — تحسين الهامش 22,300 شيكل', expectedValue: 22300, status: 'OPEN' },
+    { id: 4, type: 'PROMOTION_CAMPAIGN', priority: 'LOW', title: 'حملة ترويجية على أصناف بطيئة — تصفية مخزون بقيمة 35,000 شيكل', expectedValue: 35000, status: 'OPEN' },
+  ],
+  inventoryBreakdown: {
+    FAST: 523656,
+    MEDIUM: 386210,
+    SLOW: 211298,
+    STAGNANT: 125636,
+  },
+  liquidityBreakdown: {
+    AVAILABLE: 415680,
+    RECEIVABLES: 312400,
+    PAYABLES: 1019080,
+  },
+  itemsNeedingAttention: [
+    { id: 1, name: 'عصير تفاح 1 لتر', subCategory: null, costPrice: 3.2, salePrice: 5.5, marginPercent: 42, quantity: 2850, inventoryValue: 9120, lastSaleDate: '2026-04-17', expiryDate: null, movementStatus: 'STAGNANT' },
+    { id: 2, name: 'جبنة بيضاء 1 كغ', subCategory: null, costPrice: 12, salePrice: 16, marginPercent: 25, quantity: 1240, inventoryValue: 14880, lastSaleDate: '2026-05-27', expiryDate: '2026-07-22', movementStatus: 'SLOW' },
+    { id: 3, name: 'شوكولاتة داكنة', subCategory: null, costPrice: 4, salePrice: 9.5, marginPercent: 58, quantity: 320, inventoryValue: 1280, lastSaleDate: '2026-06-27', expiryDate: null, movementStatus: 'FAST' },
+    { id: 4, name: 'دجاج مجمد 900غ', subCategory: null, costPrice: 18, salePrice: 24, marginPercent: 25, quantity: 860, inventoryValue: 15480, lastSaleDate: '2026-06-22', expiryDate: '2026-08-31', movementStatus: 'MEDIUM' },
+  ],
+};
