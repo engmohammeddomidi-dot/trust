@@ -4,6 +4,7 @@ Thumbs.db
 # Backend
 trust-platform/trust-backend/target/
 trust-platform/trust-backend/.mvn/
+trust-platform/trust-backend/src/main/resources/static/
 *.class
 
 # Frontend

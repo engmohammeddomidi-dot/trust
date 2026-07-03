@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/target
+**/.git
+**/.mvn
+**/.vite
+**/*.class
+trust-platform/trust-backend/src/main/resources/static
+.claude

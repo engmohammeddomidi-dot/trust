@@ -23,7 +23,9 @@ import java.util.List;
  * أمان قائم على JWT - القسم 9.1 من خطة MVP: تسجيل الدخول عبر /api/auth/login
  * يمنح رمزًا، وبقية /api/** تتطلب رمزًا صالحًا. H2 console مفتوح للتطوير فقط.
  * CORS مقيّد بأصل الفرونت اند المُعرَّف صراحةً (وليس "*") - راجع app.cors.allowed-origins.
- * لا يوجد anyRequest().permitAll() متبقٍّ - هذا API خالص بدون محتوى ثابت يُقدَّم للعموم.
+ * عند النشر المدمج (ملفات الواجهة الثابتة داخل نفس التطبيق) لا بد أن يكون قشرة التطبيق
+ * (index.html/JS/CSS ومسارات React Router) عامة الوصول - المصادقة الفعلية تُفرض من جهة
+ * العميل (RequireAuth) ومن جهة الخادم على /api/** فقط، وهي حدود الأمان الحقيقية هنا.
  * entryPoint مخصص يُرجع 401 عند غياب/عدم صلاحية الرمز (بدل 403 الافتراضي) حتى تتمكن
  * الواجهة الأمامية من تفعيل تجديد الرمز التلقائي عبر refreshToken بدل تسجيل الخروج فورًا.
  */
@@ -84,7 +86,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(requestLoggingFilter, JwtAuthFilter.class);

@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { clearSession, getSession, updateTokens } from '../auth/session';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// في التطوير المحلي (npm run dev) نتصل بـ backend منفصل على 8080. في الإنتاج، إن لم يُحدَّد
+// VITE_API_BASE_URL صراحةً، نفترض أن الواجهة تُقدَّم من نفس الأصل الذي يخدم الـ API (نشر مدمج).
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8080/api' : '/api');
 
 export const apiClient = axios.create({ baseURL: BASE_URL });
 
