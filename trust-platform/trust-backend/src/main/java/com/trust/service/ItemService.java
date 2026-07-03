@@ -3,11 +3,14 @@ package com.trust.service;
 import com.trust.domain.Branch;
 import com.trust.domain.CategoryBenchmark;
 import com.trust.domain.Item;
+import com.trust.domain.Supplier;
 import com.trust.repository.BranchRepository;
 import com.trust.repository.CategoryBenchmarkRepository;
 import com.trust.repository.ItemRepository;
+import com.trust.repository.SupplierRepository;
 import com.trust.web.dto.ItemCreateRequest;
 import com.trust.web.dto.ItemDto;
+import com.trust.web.dto.ItemLinkSupplierRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,12 +23,14 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final BranchRepository branchRepository;
     private final CategoryBenchmarkRepository benchmarkRepository;
+    private final SupplierRepository supplierRepository;
 
     public ItemService(ItemRepository itemRepository, BranchRepository branchRepository,
-                        CategoryBenchmarkRepository benchmarkRepository) {
+                        CategoryBenchmarkRepository benchmarkRepository, SupplierRepository supplierRepository) {
         this.itemRepository = itemRepository;
         this.branchRepository = branchRepository;
         this.benchmarkRepository = benchmarkRepository;
+        this.supplierRepository = supplierRepository;
     }
 
     public ItemDto create(ItemCreateRequest req) {
@@ -78,9 +83,29 @@ public class ItemService {
         return Item.MovementStatus.FAST;
     }
 
+    /** يربط صنفًا بمورّد مفضّل ويضبط مخزون الأمان - يغذّي محرك قرار الشراء ببيانات حقيقية بدل الافتراضات */
+    public ItemDto linkSupplier(Long itemId, ItemLinkSupplierRequest req) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("الصنف غير موجود"));
+        Supplier supplier = supplierRepository.findById(req.supplierId())
+                .orElseThrow(() -> new IllegalArgumentException("المورد غير موجود"));
+        if (!supplier.getOrganization().getId().equals(item.getBranch().getOrganization().getId())) {
+            throw new IllegalArgumentException("لا يمكن ربط مورد من مؤسسة أخرى بهذا الصنف");
+        }
+        item.setSupplier(supplier);
+        if (req.safetyStockDays() != null) {
+            item.setSafetyStockDays(req.safetyStockDays());
+        }
+        return toDto(itemRepository.save(item));
+    }
+
     private ItemDto toDto(Item i) {
+        Supplier supplier = i.getSupplier();
         return new ItemDto(i.getId(), i.getName(), i.getSubCategory(), i.getCostPrice(), i.getSalePrice(),
                 Math.round(i.getMarginPercent() * 10) / 10.0, i.getQuantity(), i.getInventoryValue(),
-                i.getLastSaleDate(), i.getExpiryDate(), i.getMovementStatus().name());
+                i.getLastSaleDate(), i.getExpiryDate(), i.getMovementStatus().name(),
+                supplier != null ? supplier.getId() : null,
+                supplier != null ? supplier.getName() : null,
+                i.getSafetyStockDays());
     }
 }

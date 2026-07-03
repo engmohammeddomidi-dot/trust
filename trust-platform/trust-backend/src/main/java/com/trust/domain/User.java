@@ -6,6 +6,8 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "app_users")
 @Getter
@@ -40,4 +42,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Column(nullable = false)
+    private boolean active = true;
+
+    private LocalDateTime tosAcceptedAt;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

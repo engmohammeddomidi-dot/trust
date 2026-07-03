@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { clearSession, getSession } from '../auth/session';
+import { clearSession, getSession, updateTokens } from '../auth/session';
 
-export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
-});
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+export const apiClient = axios.create({ baseURL: BASE_URL });
 
 apiClient.interceptors.request.use((config) => {
   const session = getSession();
@@ -13,9 +13,36 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const session = getSession();
+  if (!session?.refreshToken) return null;
+  try {
+    const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken: session.refreshToken });
+    updateTokens(data.token, data.refreshToken);
+    return data.token as string;
+  } catch {
+    return null;
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && !isAuthEndpoint && !originalRequest._retried) {
+      originalRequest._retried = true;
+      refreshPromise = refreshPromise ?? refreshAccessToken().finally(() => { refreshPromise = null; });
+      const newToken = await refreshPromise;
+      if (newToken) {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return apiClient(originalRequest);
+      }
+    }
+
     if (error.response?.status === 401 && !window.location.pathname.startsWith('/login')) {
       clearSession();
       window.location.href = '/login';
@@ -56,6 +83,14 @@ export interface ItemDto {
   lastSaleDate: string | null;
   expiryDate: string | null;
   movementStatus: 'FAST' | 'MEDIUM' | 'SLOW' | 'STAGNANT';
+  supplierId: number | null;
+  supplierName: string | null;
+  safetyStockDays: number;
+}
+
+export async function linkItemSupplier(itemId: number, supplierId: number, safetyStockDays?: number): Promise<ItemDto> {
+  const { data } = await apiClient.patch<ItemDto>(`/items/${itemId}/supplier`, { supplierId, safetyStockDays });
+  return data;
 }
 
 export interface DashboardResponse {
@@ -211,11 +246,19 @@ export interface PurchaseDto {
   id: number;
   itemId: number | null;
   itemName: string | null;
+  decisionId: number | null;
+  supplierId: number | null;
   supplierName: string;
   quantity: number;
   costPrice: number;
   totalCost: number;
   purchaseDate: string;
+  status: 'SENT' | 'RECEIVED';
+  receivedQuantity: number | null;
+  receivedDate: string | null;
+  priceMatched: boolean | null;
+  hasDamage: boolean;
+  hasDiscrepancy: boolean;
 }
 
 export interface PurchaseCreateRequest {
@@ -237,6 +280,129 @@ export async function createPurchase(req: PurchaseCreateRequest): Promise<Purcha
   return data;
 }
 
+export async function receivePurchase(id: number, req: { receivedQuantity: number; priceMatched: boolean; hasDamage: boolean }): Promise<PurchaseDto> {
+  const { data } = await apiClient.patch<PurchaseDto>(`/purchases/${id}/receive`, req);
+  return data;
+}
+
+export interface SupplierDto {
+  id: number;
+  name: string;
+  contactInfo: string | null;
+  leadTimeDays: number;
+  creditTermsDays: number;
+  rating: number;
+}
+
+export async function fetchSuppliers(organizationId: number): Promise<SupplierDto[]> {
+  const { data } = await apiClient.get<SupplierDto[]>('/suppliers', { params: { organizationId } });
+  return data;
+}
+
+export async function createSupplier(req: { organizationId: number; name: string; contactInfo?: string; leadTimeDays: number; creditTermsDays: number; rating: number }): Promise<SupplierDto> {
+  const { data } = await apiClient.post<SupplierDto>('/suppliers', req);
+  return data;
+}
+
+export async function updateSupplier(id: number, req: { name: string; contactInfo?: string; leadTimeDays: number; creditTermsDays: number; rating: number }): Promise<SupplierDto> {
+  const { data } = await apiClient.put<SupplierDto>(`/suppliers/${id}`, req);
+  return data;
+}
+
+export interface DecisionDto {
+  id: number;
+  itemId: number;
+  itemName: string;
+  supplierId: number | null;
+  supplierName: string | null;
+  type: 'PURCHASE_ORDER';
+  status: 'OPEN' | 'APPROVED' | 'MODIFIED' | 'DEFERRED' | 'DISMISSED';
+  suggestedQuantity: number;
+  approvedQuantity: number | null;
+  reasonSummary: string;
+  confidenceScore: number;
+  financialImpact: number;
+  createdAt: string;
+  resolvedAt: string | null;
+  actualOutcome: string | null;
+}
+
+export async function fetchDecisions(branchId: number, status?: DecisionDto['status']): Promise<DecisionDto[]> {
+  const { data } = await apiClient.get<DecisionDto[]>('/decisions', { params: { branchId, status } });
+  return data;
+}
+
+export async function regenerateDecisions(branchId: number): Promise<DecisionDto[]> {
+  const { data } = await apiClient.post<DecisionDto[]>('/decisions/regenerate', null, { params: { branchId } });
+  return data;
+}
+
+export async function approveDecision(id: number): Promise<DecisionDto> {
+  const { data } = await apiClient.patch<DecisionDto>(`/decisions/${id}/approve`);
+  return data;
+}
+
+export async function modifyDecision(id: number, quantity: number, supplierId?: number): Promise<DecisionDto> {
+  const { data } = await apiClient.patch<DecisionDto>(`/decisions/${id}/modify`, { quantity, supplierId });
+  return data;
+}
+
+export async function deferDecision(id: number): Promise<DecisionDto> {
+  const { data } = await apiClient.patch<DecisionDto>(`/decisions/${id}/defer`);
+  return data;
+}
+
+export async function dismissDecision(id: number): Promise<DecisionDto> {
+  const { data } = await apiClient.patch<DecisionDto>(`/decisions/${id}/dismiss`);
+  return data;
+}
+
+export interface DecisionQualityScoreDto {
+  ordersIssued: number;
+  ordersReceived: number;
+  ordersWithDiscrepancy: number;
+  qualityScorePercent: number | null;
+}
+
+export async function fetchDecisionQualityScore(branchId: number): Promise<DecisionQualityScoreDto> {
+  const { data } = await apiClient.get<DecisionQualityScoreDto>('/decisions/quality-score', { params: { branchId } });
+  return data;
+}
+
+export interface PolicyDto {
+  maxPurchaseLiquidityRatio: number;
+  minSupplierRating: number;
+}
+
+export async function fetchPolicy(organizationId: number): Promise<PolicyDto> {
+  const { data } = await apiClient.get<PolicyDto>('/policies', { params: { organizationId } });
+  return data;
+}
+
+export async function updatePolicy(organizationId: number, req: PolicyDto): Promise<PolicyDto> {
+  const { data } = await apiClient.put<PolicyDto>('/policies', req, { params: { organizationId } });
+  return data;
+}
+
+export type GoalType =
+  | 'INCREASE_PROFITABILITY' | 'IMPROVE_LIQUIDITY' | 'PREVENT_STOCKOUTS' | 'REDUCE_STAGNANT_INVENTORY'
+  | 'INCREASE_SALES' | 'IMPROVE_SUPPLIER_PERFORMANCE' | 'INCREASE_INVENTORY_TURNOVER';
+
+export interface GoalDto {
+  type: GoalType;
+  priority: number;
+}
+
+export async function fetchGoals(organizationId: number): Promise<GoalDto[]> {
+  const { data } = await apiClient.get<GoalDto[]>('/goals', { params: { organizationId } });
+  return data;
+}
+
+export async function updateGoals(organizationId: number, goals: GoalDto[]): Promise<GoalDto[]> {
+  const { data } = await apiClient.put<GoalDto[]>('/goals', goals, { params: { organizationId } });
+  return data;
+}
+
 export interface UserSummaryDto {
   id: number;
   name: string;
@@ -245,15 +411,146 @@ export interface UserSummaryDto {
   organizationId: number | null;
   organizationName: string | null;
   branchId: number | null;
+  tosAccepted: boolean;
 }
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   user: UserSummaryDto;
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
   const { data } = await apiClient.post<LoginResponse>('/auth/login', { email, password });
+  return data;
+}
+
+export async function logout(refreshToken: string): Promise<void> {
+  await apiClient.post('/auth/logout', { refreshToken });
+}
+
+export async function forgotPassword(email: string): Promise<{ message: string; resetToken: string | null }> {
+  const { data } = await apiClient.post('/auth/forgot-password', { email });
+  return data;
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await apiClient.post('/auth/reset-password', { token, newPassword });
+}
+
+export async function acceptTos(): Promise<UserSummaryDto> {
+  const { data } = await apiClient.patch<UserSummaryDto>('/auth/accept-tos');
+  return data;
+}
+
+export interface UserListDto {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  branchId: number | null;
+  branchName: string | null;
+  active: boolean;
+}
+
+export async function fetchUsers(): Promise<UserListDto[]> {
+  const { data } = await apiClient.get<UserListDto[]>('/users');
+  return data;
+}
+
+export async function createUser(req: { name: string; email: string; password: string; role: string; branchId?: number }): Promise<UserListDto> {
+  const { data } = await apiClient.post<UserListDto>('/users', req);
+  return data;
+}
+
+export async function deactivateUser(id: number): Promise<UserListDto> {
+  const { data } = await apiClient.patch<UserListDto>(`/users/${id}/deactivate`);
+  return data;
+}
+
+export async function activateUser(id: number): Promise<UserListDto> {
+  const { data } = await apiClient.patch<UserListDto>(`/users/${id}/activate`);
+  return data;
+}
+
+export interface NotificationDto {
+  id: number;
+  title: string;
+  message: string;
+  severity: 'INFO' | 'SUCCESS' | 'WARNING';
+  createdAt: string;
+  readAt: string | null;
+}
+
+export async function fetchNotifications(): Promise<NotificationDto[]> {
+  const { data } = await apiClient.get<NotificationDto[]>('/notifications');
+  return data;
+}
+
+export async function fetchUnreadNotificationCount(): Promise<number> {
+  const { data } = await apiClient.get<{ count: number }>('/notifications/unread-count');
+  return data.count;
+}
+
+export async function markNotificationRead(id: number): Promise<NotificationDto> {
+  const { data } = await apiClient.patch<NotificationDto>(`/notifications/${id}/read`);
+  return data;
+}
+
+export interface AuditLogDto {
+  id: number;
+  actorEmail: string;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  details: string | null;
+  createdAt: string;
+}
+
+export async function fetchAuditLog(): Promise<AuditLogDto[]> {
+  const { data } = await apiClient.get<AuditLogDto[]>('/audit-log');
+  return data;
+}
+
+export async function exportTenantData(): Promise<unknown> {
+  const { data } = await apiClient.get('/data-export');
+  return data;
+}
+
+export interface ItemImportRow {
+  name: string;
+  subCategory?: string;
+  costPrice: number;
+  salePrice: number;
+  quantity: number;
+  lastSaleDate?: string;
+  expiryDate?: string;
+}
+
+export async function bulkImportItems(branchId: number, items: ItemImportRow[]): Promise<{ createdCount: number; errors: string[] }> {
+  const { data } = await apiClient.post('/items/bulk', { branchId, items });
+  return data;
+}
+
+export interface CreateOrganizationRequest {
+  organizationName: string;
+  category: string;
+  branchName: string;
+  branchCity?: string;
+  ownerName: string;
+  ownerEmail: string;
+}
+
+export interface CreateOrganizationResponse {
+  organizationId: number;
+  organizationName: string;
+  branchId: number;
+  ownerEmail: string;
+  temporaryPassword: string;
+}
+
+export async function createOrganization(req: CreateOrganizationRequest): Promise<CreateOrganizationResponse> {
+  const { data } = await apiClient.post<CreateOrganizationResponse>('/admin/organizations', req);
   return data;
 }
 

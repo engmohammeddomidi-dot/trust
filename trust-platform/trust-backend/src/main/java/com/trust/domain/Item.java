@@ -47,6 +47,15 @@ public class Item {
     @Enumerated(EnumType.STRING)
     private MovementStatus movementStatus = MovementStatus.FAST;
 
+    /** المورّد المفضّل لهذا الصنف - يغذّي محرك قرار الشراء بمدة التوريد الفعلية */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
+
+    /** عدد أيام مخزون الأمان المطلوبة فوق مدة التوريد قبل اعتبار الصنف بحاجة لإعادة طلب */
+    @Column(nullable = false)
+    private int safetyStockDays = 3;
+
     /** هامش ربح الصنف % */
     public double getMarginPercent() {
         if (salePrice <= 0) return 0;

@@ -6,9 +6,17 @@ public record PurchaseDto(
         Long id,
         Long itemId,
         String itemName,
+        Long decisionId,
+        Long supplierId,
         String supplierName,
         double quantity,
         double costPrice,
         double totalCost,
-        LocalDate purchaseDate
+        LocalDate purchaseDate,
+        String status,
+        Double receivedQuantity,
+        LocalDate receivedDate,
+        Boolean priceMatched,
+        boolean hasDamage,
+        boolean hasDiscrepancy
 ) {}

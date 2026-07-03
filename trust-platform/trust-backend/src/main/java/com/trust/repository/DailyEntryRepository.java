@@ -11,4 +11,6 @@ public interface DailyEntryRepository extends JpaRepository<DailyEntry, Long> {
     List<DailyEntry> findByBranchIdAndEntryDateBetweenOrderByEntryDateAsc(Long branchId, LocalDate from, LocalDate to);
     List<DailyEntry> findByBranchIdInAndEntryDateBetweenOrderByEntryDateAsc(List<Long> branchIds, LocalDate from, LocalDate to);
     Optional<DailyEntry> findByBranchIdAndEntryDate(Long branchId, LocalDate date);
+    List<DailyEntry> findByBranchIdInOrderByEntryDateAsc(List<Long> branchIds);
+    Optional<DailyEntry> findTopByBranchIdOrderByEntryDateDesc(Long branchId);
 }

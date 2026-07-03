@@ -15,6 +15,7 @@ const items: NavItem[] = [
   { key: 'sales', label: 'المبيعات', icon: '📈', path: '/sales' },
   { key: 'inventory', label: 'المخزون', icon: '📦', path: '/inventory' },
   { key: 'purchases', label: 'المشتريات', icon: '🛒', path: '/purchases' },
+  { key: 'decisions', label: 'قرارات الشراء', icon: '🎯', path: '/decisions' },
   { key: 'profitability', label: 'الربحية', icon: '💰', path: '/profitability' },
   { key: 'liquidity', label: 'السيولة', icon: '💵', path: '/liquidity' },
   { key: 'pricing', label: 'التسعير', icon: '🏷️', path: '/pricing' },

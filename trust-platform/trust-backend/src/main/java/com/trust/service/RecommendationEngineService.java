@@ -30,13 +30,16 @@ public class RecommendationEngineService {
     private final ItemRepository itemRepository;
     private final CategoryBenchmarkRepository benchmarkRepository;
     private final RecommendationRepository recommendationRepository;
+    private final NotificationService notificationService;
 
     public RecommendationEngineService(ItemRepository itemRepository,
                                         CategoryBenchmarkRepository benchmarkRepository,
-                                        RecommendationRepository recommendationRepository) {
+                                        RecommendationRepository recommendationRepository,
+                                        NotificationService notificationService) {
         this.itemRepository = itemRepository;
         this.benchmarkRepository = benchmarkRepository;
         this.recommendationRepository = recommendationRepository;
+        this.notificationService = notificationService;
     }
 
     public List<Recommendation> generateForBranch(Branch branch) {
@@ -48,6 +51,7 @@ public class RecommendationEngineService {
         for (Recommendation r : recommendationRepository.findByBranchIdAndStatusOrderByExpectedValueDesc(branch.getId(), Recommendation.Status.OPEN)) {
             existingByKey.put(keyFor(r.getType(), r.getItem()), r);
         }
+        java.util.Set<String> keysBeforeRun = new java.util.HashSet<>(existingByKey.keySet());
 
         List<Recommendation> results = new ArrayList<>();
 
@@ -106,6 +110,17 @@ public class RecommendationEngineService {
             }
         }
 
+        long newHighPriorityCount = results.stream()
+                .filter(r -> r.getPriority() == Recommendation.Priority.HIGH)
+                .filter(r -> !keysBeforeRun.contains(keyFor(r.getType(), r.getItem())))
+                .count();
+        if (newHighPriorityCount > 0) {
+            notificationService.notify(branch.getOrganization().getId(),
+                    "توصيات جديدة عالية الأولوية",
+                    "ظهرت " + newHighPriorityCount + " توصية جديدة عالية الأولوية لفرع " + branch.getName() + " — راجع صفحة التنبيهات",
+                    com.trust.domain.Notification.Severity.WARNING);
+        }
+
         return results;
     }
 
@@ -160,14 +175,8 @@ public class RecommendationEngineService {
         return Recommendation.Priority.LOW;
     }
 
-    /** تقدير مبسط لمتوسط المبيعات اليومية للصنف بناءً على حالة حركته (MVP بدون سجل مبيعات مفصّل لكل صنف) */
     private double estimateDailySales(Item item) {
-        return switch (item.getMovementStatus()) {
-            case FAST -> Math.max(1, item.getQuantity() * 0.15);
-            case MEDIUM -> Math.max(0.5, item.getQuantity() * 0.07);
-            case SLOW -> Math.max(0.2, item.getQuantity() * 0.03);
-            case STAGNANT -> 0.0;
-        };
+        return SalesEstimator.estimateDailySales(item);
     }
 
     private String formatCurrency(double value) {

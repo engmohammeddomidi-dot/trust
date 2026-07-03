@@ -13,5 +13,8 @@ public record ItemDto(
         double inventoryValue,
         LocalDate lastSaleDate,
         LocalDate expiryDate,
-        String movementStatus
+        String movementStatus,
+        Long supplierId,
+        String supplierName,
+        int safetyStockDays
 ) {}

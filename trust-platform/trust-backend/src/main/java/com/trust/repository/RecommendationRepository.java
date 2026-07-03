@@ -9,4 +9,5 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
     List<Recommendation> findByBranchIdInAndStatusOrderByExpectedValueDesc(List<Long> branchIds, Recommendation.Status status);
     List<Recommendation> findByBranchIdAndStatusOrderByExpectedValueDesc(Long branchId, Recommendation.Status status);
     List<Recommendation> findByBranchIdOrderByExpectedValueDesc(Long branchId);
+    List<Recommendation> findByBranchIdInOrderByExpectedValueDesc(List<Long> branchIds);
 }

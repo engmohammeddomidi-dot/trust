@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import { RequireAuth } from './auth/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { Dashboard } from './pages/Dashboard';
 import { InventoryPage } from './pages/InventoryPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -9,6 +11,7 @@ import { ProfitabilityPage } from './pages/ProfitabilityPage';
 import { LiquidityPage } from './pages/LiquidityPage';
 import { SalesPage } from './pages/SalesPage';
 import { PurchasesPage } from './pages/PurchasesPage';
+import { DecisionsPage } from './pages/DecisionsPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -23,6 +26,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route element={<RequireAuth />}>
         <Route path="/" element={<Dashboard />} />
@@ -33,6 +38,7 @@ export default function App() {
         <Route path="/liquidity" element={<LiquidityPage />} />
         <Route path="/sales" element={<SalesPage />} />
         <Route path="/purchases" element={<PurchasesPage />} />
+        <Route path="/decisions" element={<DecisionsPage />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/reports" element={<ReportsPage />} />

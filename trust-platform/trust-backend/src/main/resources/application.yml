@@ -24,10 +24,23 @@ spring:
       hibernate:
         format_sql: true
 
+  flyway:
+    enabled: false # H2 التطويري يعتمد على ddl-auto=update - Flyway يُفعَّل فقط في بروفايل postgres
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 app:
   jwt:
     secret: ${JWT_SECRET:trust-platform-dev-secret-key-change-in-production-minimum-256-bits-long}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 ساعة
+    expiration-ms: ${JWT_EXPIRATION_MS:900000} # 15 دقيقة - رمز دخول قصير الأمد، يُجدَّد عبر /api/auth/refresh
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 أيام
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 

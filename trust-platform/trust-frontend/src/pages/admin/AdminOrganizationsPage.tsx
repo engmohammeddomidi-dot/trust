@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { CreateOrganizationModal } from '../../components/CreateOrganizationModal';
 import { fetchAdminOrganizations, type AdminOrganizationDto } from '../../api/client';
 
 const categoryLabel: Record<string, string> = {
@@ -19,9 +20,14 @@ function scoreColor(score: number): string {
 
 export function AdminOrganizationsPage() {
   const [orgs, setOrgs] = useState<AdminOrganizationDto[] | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  function load() {
+    fetchAdminOrganizations().then(setOrgs);
+  }
 
   useEffect(() => {
-    fetchAdminOrganizations().then(setOrgs);
+    load();
   }, []);
 
   return (
@@ -30,6 +36,7 @@ export function AdminOrganizationsPage() {
       <main className="main-area">
         <div className="page-header">
           <div className="page-title">المؤسسات</div>
+          <button className="btn-primary" onClick={() => setShowCreateModal(true)}>+ إنشاء مؤسسة جديدة</button>
         </div>
 
         <div className="card">
@@ -60,6 +67,10 @@ export function AdminOrganizationsPage() {
           )}
         </div>
       </main>
+
+      {showCreateModal && (
+        <CreateOrganizationModal onClose={() => setShowCreateModal(false)} onCreated={load} />
+      )}
     </div>
   );
 }

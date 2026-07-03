@@ -1,5 +1,6 @@
 export interface Session {
   token: string;
+  refreshToken: string;
   userId: number;
   name: string;
   email: string;
@@ -7,6 +8,7 @@ export interface Session {
   organizationId: number | null;
   organizationName: string | null;
   branchId: number | null;
+  tosAccepted: boolean;
 }
 
 const STORAGE_KEY = 'trust_session';
@@ -23,6 +25,12 @@ export function getSession(): Session | null {
 
 export function setSession(session: Session): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+}
+
+export function updateTokens(token: string, refreshToken: string): void {
+  const session = getSession();
+  if (!session) return;
+  setSession({ ...session, token, refreshToken });
 }
 
 export function clearSession(): void {

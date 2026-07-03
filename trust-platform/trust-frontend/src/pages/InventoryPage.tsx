@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { AddItemModal } from '../components/AddItemModal';
-import { fetchItems, type ItemDto } from '../api/client';
-import { requireBranchId } from '../auth/session';
+import { ImportItemsCsvModal } from '../components/ImportItemsCsvModal';
+import { fetchItems, fetchSuppliers, linkItemSupplier, type ItemDto, type SupplierDto } from '../api/client';
+import { requireBranchId, requireOrganizationId } from '../auth/session';
 
 const TABS: { key: 'ALL' | ItemDto['movementStatus']; label: string }[] = [
   { key: 'ALL', label: 'الكل' },
@@ -22,12 +23,43 @@ function isNearExpiry(expiryDate: string | null): boolean {
 
 export function InventoryPage() {
   const [items, setItems] = useState<ItemDto[] | null>(null);
+  const [suppliers, setSuppliers] = useState<SupplierDto[] | null>(null);
   const [tab, setTab] = useState<'ALL' | ItemDto['movementStatus']>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [savingSupplierFor, setSavingSupplierFor] = useState<number | null>(null);
+
+  function load() {
+    fetchItems(requireBranchId()).then(setItems);
+    fetchSuppliers(requireOrganizationId()).then(setSuppliers);
+  }
 
   useEffect(() => {
-    fetchItems(requireBranchId()).then(setItems);
+    load();
   }, []);
+
+  async function handleSupplierChange(item: ItemDto, supplierId: string) {
+    if (!supplierId) return;
+    setSavingSupplierFor(item.id);
+    try {
+      const updated = await linkItemSupplier(item.id, Number(supplierId), item.safetyStockDays);
+      setItems((prev) => prev?.map((i) => (i.id === updated.id ? updated : i)) ?? null);
+    } finally {
+      setSavingSupplierFor(null);
+    }
+  }
+
+  async function handleSafetyStockBlur(item: ItemDto, value: string) {
+    const days = Number(value);
+    if (!Number.isFinite(days) || days < 0 || days === item.safetyStockDays || !item.supplierId) return;
+    setSavingSupplierFor(item.id);
+    try {
+      const updated = await linkItemSupplier(item.id, item.supplierId, days);
+      setItems((prev) => prev?.map((i) => (i.id === updated.id ? updated : i)) ?? null);
+    } finally {
+      setSavingSupplierFor(null);
+    }
+  }
 
   const filtered = items?.filter((item) => tab === 'ALL' || item.movementStatus === tab) ?? [];
 
@@ -37,7 +69,10 @@ export function InventoryPage() {
       <main className="main-area">
         <div className="page-header">
           <div className="page-title">المخزون</div>
-          <button className="btn-primary" onClick={() => setShowAddModal(true)}>+ إضافة صنف</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn-secondary" onClick={() => setShowImportModal(true)}>⬆ استيراد CSV</button>
+            <button className="btn-primary" onClick={() => setShowAddModal(true)}>+ إضافة صنف</button>
+          </div>
         </div>
 
         <div className="tabs">
@@ -71,6 +106,8 @@ export function InventoryPage() {
                   <th>تاريخ آخر بيع</th>
                   <th>تاريخ الانتهاء</th>
                   <th>الحالة</th>
+                  <th>المورد المفضّل</th>
+                  <th>مخزون الأمان (يوم)</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,6 +123,35 @@ export function InventoryPage() {
                     <td>{item.lastSaleDate ?? '-'}</td>
                     <td>{item.expiryDate ?? '-'}</td>
                     <td><span className={`status-chip status-${item.movementStatus}`}>{statusLabel[item.movementStatus]}</span></td>
+                    <td>
+                      <select
+                        value={item.supplierId ?? ''}
+                        disabled={savingSupplierFor === item.id || suppliers === null}
+                        onChange={(e) => handleSupplierChange(item, e.target.value)}
+                        style={{
+                          background: 'var(--bg-panel-alt)', border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-md)', padding: '4px 8px', color: 'var(--text-primary)', fontSize: 12,
+                        }}
+                      >
+                        <option value="">— بدون مورد —</option>
+                        {suppliers?.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={item.safetyStockDays}
+                        disabled={!item.supplierId || savingSupplierFor === item.id}
+                        onBlur={(e) => handleSafetyStockBlur(item, e.target.value)}
+                        style={{
+                          width: 60, background: 'var(--bg-panel-alt)', border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-md)', padding: '4px 8px', color: 'var(--text-primary)', fontSize: 12,
+                        }}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -98,6 +164,12 @@ export function InventoryPage() {
         <AddItemModal
           onClose={() => setShowAddModal(false)}
           onCreated={(item) => setItems((prev) => (prev ? [...prev, item] : [item]))}
+        />
+      )}
+      {showImportModal && (
+        <ImportItemsCsvModal
+          onClose={() => setShowImportModal(false)}
+          onImported={load}
         />
       )}
     </div>

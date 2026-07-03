@@ -7,5 +7,6 @@ public record UserSummaryDto(
         String role,
         Long organizationId,
         String organizationName,
-        Long branchId
+        Long branchId,
+        boolean tosAccepted
 ) {}

@@ -8,6 +8,7 @@ import { RecommendationsList } from '../components/RecommendationsList';
 import { DonutBreakdown } from '../components/DonutBreakdown';
 import { AttentionTable } from '../components/AttentionTable';
 import { DailyEntryModal } from '../components/DailyEntryModal';
+import { NotificationBell } from '../components/NotificationBell';
 import { applyRecommendation, fetchDashboard, fetchRecommendations, type DashboardResponse } from '../api/client';
 import { mockDashboard } from '../api/mock';
 import { getSession, requireBranchId, requireOrganizationId } from '../auth/session';
@@ -82,6 +83,7 @@ export function Dashboard() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button className="btn-primary" onClick={() => setShowEntryModal(true)}>+ إدخال بيانات اليوم</button>
+            <NotificationBell />
             <div className="user-chip">
               <div style={{ textAlign: 'right' }}>
                 <div className="name">مرحبًا، {session?.name ?? ''}</div>

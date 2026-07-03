@@ -23,18 +23,20 @@ public class DataSeeder implements CommandLineRunner {
     private final ItemRepository itemRepository;
     private final DailyEntryRepository dailyEntryRepository;
     private final UserRepository userRepository;
+    private final SupplierRepository supplierRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(OrganizationRepository organizationRepository, BranchRepository branchRepository,
                        CategoryBenchmarkRepository benchmarkRepository, ItemRepository itemRepository,
                        DailyEntryRepository dailyEntryRepository, UserRepository userRepository,
-                       PasswordEncoder passwordEncoder) {
+                       SupplierRepository supplierRepository, PasswordEncoder passwordEncoder) {
         this.organizationRepository = organizationRepository;
         this.branchRepository = branchRepository;
         this.benchmarkRepository = benchmarkRepository;
         this.itemRepository = itemRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.userRepository = userRepository;
+        this.supplierRepository = supplierRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -76,11 +78,44 @@ public class DataSeeder implements CommandLineRunner {
         saveItem(branch, "جبنة بيضاء 1 كغ", 12.0, 16.0, 1240, LocalDate.now().minusDays(35), LocalDate.now().plusDays(20));
         saveItem(branch, "شوكولاتة داكنة", 4.0, 9.5, 320, LocalDate.now().minusDays(5), null);
         saveItem(branch, "دجاج مجمد 900غ", 18.0, 24.0, 860, LocalDate.now().minusDays(10), LocalDate.now().plusDays(60));
-        saveItem(branch, "أرز بسمتي 5 كغ", 22.0, 27.0, 500, LocalDate.now().minusDays(3), null);
-        saveItem(branch, "زيت زيتون 1 لتر", 30.0, 42.0, 150, LocalDate.now().minusDays(2), null);
+        Item rice = saveItem(branch, "أرز بسمتي 5 كغ", 22.0, 27.0, 500, LocalDate.now().minusDays(3), null);
+        Item oliveOil = saveItem(branch, "زيت زيتون 1 لتر", 30.0, 42.0, 150, LocalDate.now().minusDays(2), null);
 
+        seedSuppliers(org, rice, oliveOil);
         seedSecondOrganization();
         seedUsers(org, branch);
+    }
+
+    /**
+     * موردون تجريبيون - يُربط بعضهم بأصناف سريعة الحركة حتى يُنتج محرك قرار الشراء
+     * (PurchaseDecisionEngineService) توصية حقيقية مدعومة بمدة توريد فعلية عند أول تشغيل.
+     */
+    private void seedSuppliers(Organization org, Item rice, Item oliveOil) {
+        Supplier mainSupplier = new Supplier();
+        mainSupplier.setOrganization(org);
+        mainSupplier.setName("شركة الأمين للتوريدات");
+        mainSupplier.setContactInfo("0599123456");
+        mainSupplier.setLeadTimeDays(5);
+        mainSupplier.setCreditTermsDays(30);
+        mainSupplier.setRating(92);
+        mainSupplier = supplierRepository.save(mainSupplier);
+
+        Supplier altSupplier = new Supplier();
+        altSupplier.setOrganization(org);
+        altSupplier.setName("مؤسسة النور التجارية");
+        altSupplier.setContactInfo("0598765432");
+        altSupplier.setLeadTimeDays(3);
+        altSupplier.setCreditTermsDays(15);
+        altSupplier.setRating(78);
+        supplierRepository.save(altSupplier);
+
+        rice.setSupplier(mainSupplier);
+        rice.setSafetyStockDays(4);
+        itemRepository.save(rice);
+
+        oliveOil.setSupplier(mainSupplier);
+        oliveOil.setSafetyStockDays(3);
+        itemRepository.save(oliveOil);
     }
 
     /** مؤسسة ثانية بسيطة لغرض تجربة تجميع البيانات عبر المؤسسات في لوحة الأدمن */
@@ -130,7 +165,7 @@ public class DataSeeder implements CommandLineRunner {
         userRepository.save(admin);
     }
 
-    private void saveItem(Branch branch, String name, double cost, double price, double qty,
+    private Item saveItem(Branch branch, String name, double cost, double price, double qty,
                            LocalDate lastSale, LocalDate expiry) {
         Item item = new Item();
         item.setBranch(branch);
@@ -149,7 +184,7 @@ public class DataSeeder implements CommandLineRunner {
         else status = Item.MovementStatus.FAST;
         item.setMovementStatus(status);
 
-        itemRepository.save(item);
+        return itemRepository.save(item);
     }
 
     private void seedBenchmarks() {

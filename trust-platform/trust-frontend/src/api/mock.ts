@@ -46,9 +46,9 @@ export const mockDashboard: DashboardResponse = {
     PAYABLES: 1019080,
   },
   itemsNeedingAttention: [
-    { id: 1, name: 'عصير تفاح 1 لتر', subCategory: null, costPrice: 3.2, salePrice: 5.5, marginPercent: 42, quantity: 2850, inventoryValue: 9120, lastSaleDate: '2026-04-17', expiryDate: null, movementStatus: 'STAGNANT' },
-    { id: 2, name: 'جبنة بيضاء 1 كغ', subCategory: null, costPrice: 12, salePrice: 16, marginPercent: 25, quantity: 1240, inventoryValue: 14880, lastSaleDate: '2026-05-27', expiryDate: '2026-07-22', movementStatus: 'SLOW' },
-    { id: 3, name: 'شوكولاتة داكنة', subCategory: null, costPrice: 4, salePrice: 9.5, marginPercent: 58, quantity: 320, inventoryValue: 1280, lastSaleDate: '2026-06-27', expiryDate: null, movementStatus: 'FAST' },
-    { id: 4, name: 'دجاج مجمد 900غ', subCategory: null, costPrice: 18, salePrice: 24, marginPercent: 25, quantity: 860, inventoryValue: 15480, lastSaleDate: '2026-06-22', expiryDate: '2026-08-31', movementStatus: 'MEDIUM' },
+    { id: 1, name: 'عصير تفاح 1 لتر', subCategory: null, costPrice: 3.2, salePrice: 5.5, marginPercent: 42, quantity: 2850, inventoryValue: 9120, lastSaleDate: '2026-04-17', expiryDate: null, movementStatus: 'STAGNANT', supplierId: null, supplierName: null, safetyStockDays: 3 },
+    { id: 2, name: 'جبنة بيضاء 1 كغ', subCategory: null, costPrice: 12, salePrice: 16, marginPercent: 25, quantity: 1240, inventoryValue: 14880, lastSaleDate: '2026-05-27', expiryDate: '2026-07-22', movementStatus: 'SLOW', supplierId: null, supplierName: null, safetyStockDays: 3 },
+    { id: 3, name: 'شوكولاتة داكنة', subCategory: null, costPrice: 4, salePrice: 9.5, marginPercent: 58, quantity: 320, inventoryValue: 1280, lastSaleDate: '2026-06-27', expiryDate: null, movementStatus: 'FAST', supplierId: null, supplierName: null, safetyStockDays: 3 },
+    { id: 4, name: 'دجاج مجمد 900غ', subCategory: null, costPrice: 18, salePrice: 24, marginPercent: 25, quantity: 860, inventoryValue: 15480, lastSaleDate: '2026-06-22', expiryDate: '2026-08-31', movementStatus: 'MEDIUM', supplierId: null, supplierName: null, safetyStockDays: 3 },
   ],
 };

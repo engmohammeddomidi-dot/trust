@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../api/client';
 import { setSession } from '../auth/session';
 
@@ -18,6 +18,7 @@ export function LoginPage() {
       const res = await login(email, password);
       setSession({
         token: res.token,
+        refreshToken: res.refreshToken,
         userId: res.user.id,
         name: res.user.name,
         email: res.user.email,
@@ -25,10 +26,16 @@ export function LoginPage() {
         organizationId: res.user.organizationId,
         organizationName: res.user.organizationName,
         branchId: res.user.branchId,
+        tosAccepted: res.user.tosAccepted,
       });
       navigate(res.user.role === 'PLATFORM_ADMIN' ? '/admin' : '/', { replace: true });
-    } catch {
-      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+    } catch (err) {
+      const status = (err as { response?: { status?: number; data?: { message?: string } } })?.response?.status;
+      if (status === 429) {
+        setError('محاولات دخول كثيرة فاشلة - حاول مرة أخرى خلال دقيقة');
+      } else {
+        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -68,6 +75,12 @@ export function LoginPage() {
           <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={submitting}>
             {submitting ? 'جارِ الدخول...' : 'تسجيل الدخول'}
           </button>
+
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <Link to="/forgot-password" style={{ color: 'var(--accent-blue)', fontSize: 13, textDecoration: 'none' }}>
+              نسيت كلمة المرور؟
+            </Link>
+          </div>
         </form>
 
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 16, textAlign: 'center' }}>

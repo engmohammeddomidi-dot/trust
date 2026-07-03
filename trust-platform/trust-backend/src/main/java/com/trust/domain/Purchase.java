@@ -17,6 +17,12 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class Purchase {
 
+    /**
+     * SENT: أمر شراء صادر (عادة عن اعتماد Decision) بانتظار الاستلام - لا يزال لا يُحتسب في المخزون.
+     * RECEIVED: تم استلام البضاعة فعليًا - القيمة الافتراضية للإدخال اليدوي القديم (يسجّل شراء مكتمل بالفعل).
+     */
+    public enum Status { SENT, RECEIVED }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,6 +35,16 @@ public class Purchase {
     @JoinColumn(name = "item_id")
     private Item item;
 
+    /** المورد الحقيقي إن وُجد - قد تكون فارغة للإدخالات اليدوية القديمة التي تعتمد على supplierName فقط */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
+
+    /** القرار الذي أنشأ هذه الطلبية - فارغ للإدخالات اليدوية المباشرة عبر صفحة المشتريات */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "decision_id")
+    private Decision decision;
+
     @Column(nullable = false)
     private String supplierName;
 
@@ -40,6 +56,18 @@ public class Purchase {
 
     @Column(nullable = false)
     private LocalDate purchaseDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status = Status.RECEIVED;
+
+    private Double receivedQuantity;
+    private LocalDate receivedDate;
+    private Boolean priceMatched;
+    private boolean hasDamage;
+
+    /** true إن اختلفت الكمية المستلمة عن المطلوبة، أو لم يتطابق السعر، أو وُجد تلف */
+    private boolean hasDiscrepancy;
 
     public double getTotalCost() {
         return quantity * costPrice;
