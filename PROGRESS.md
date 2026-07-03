@@ -6,7 +6,7 @@ Living document tracking what's been built, what's left, and how to pick work ba
 - Git root: `C:\Users\m.domidi_freightos\Desktop\trust-platform`
 - App code: `trust-platform\trust-backend` (Spring Boot 3.3.2 / Java 21) and `trust-platform\trust-frontend` (React 18 + TS + Vite)
 - Original spec: `handover.md` at repo root
-- Git repo initialized this project cycle; commits made incrementally. Remote status: not yet confirmed/pushed (check `git remote -v` before assuming one exists).
+- Git repo initialized this project cycle. Remote: `https://github.com/engmohammeddomidi-dot/trust` (public), pushed 2026-07-04 — `master` is up to date with the market-grade batch + full Procurement Decision Engine as one commit (`30960ce`). Push required accepting a pending collaborator invite via the GitHub API (`PATCH /user/repository_invitations/{id}`) since the cached git credential (`mohammedmahmouddomidi`) needed to be added as a collaborator on the repo (owned by `engmohammeddomidi-dot`) first.
 
 ## Governing instructions from the user (do not deviate without asking)
 1. Keep working autonomously, don't stop, don't ask permission mid-task.

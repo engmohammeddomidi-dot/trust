@@ -2,6 +2,8 @@ package com.trust.seed;
 
 import com.trust.domain.*;
 import com.trust.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,8 @@ import java.util.List;
  */
 @Component
 public class DataSeeder implements CommandLineRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
     private final OrganizationRepository organizationRepository;
     private final BranchRepository branchRepository;
@@ -42,6 +46,13 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // على قاعدة بيانات دائمة (Postgres) تُعاد هذه الدالة عند كل إعادة تشغيل - البذر
+        // مرة واحدة فقط عند أول إقلاع لتفادي تعارض المفاتيح الفريدة (مثل بريد المستخدم)
+        if (organizationRepository.count() > 0) {
+            log.info("Skipping demo data seeding - organizations already exist ({} found)", organizationRepository.count());
+            return;
+        }
+
         seedBenchmarks();
 
         Organization org = new Organization();
