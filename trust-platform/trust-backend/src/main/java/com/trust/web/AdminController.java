@@ -13,8 +13,10 @@ import com.trust.repository.OrganizationRepository;
 import com.trust.repository.UserRepository;
 import com.trust.service.AuditLogService;
 import com.trust.service.HealthScoreService;
+import com.trust.web.dto.AdminCityBreakdownDto;
 import com.trust.web.dto.AdminOrganizationDto;
 import com.trust.web.dto.AdminOverviewDto;
+import com.trust.web.dto.AdminPlatformTrendPointDto;
 import com.trust.web.dto.AdminStagnantItemDto;
 import com.trust.web.dto.CreateOrganizationRequest;
 import com.trust.web.dto.CreateOrganizationResponse;
@@ -179,8 +181,47 @@ public class AdminController {
         var byCategory = orgs.stream().collect(Collectors.groupingBy(
                 o -> o.getCategory().name(), Collectors.counting()));
 
+        List<DailyEntry> recentEntries = branchIds.isEmpty() ? List.of()
+                : dailyEntryRepository.findByBranchIdInAndEntryDateBetweenOrderByEntryDateAsc(
+                        branchIds, LocalDate.now().minusDays(6), LocalDate.now());
+
+        List<AdminPlatformTrendPointDto> salesTrend = recentEntries.stream()
+                .collect(Collectors.groupingBy(DailyEntry::getEntryDate,
+                        Collectors.summingDouble(DailyEntry::getTotalSales)))
+                .entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> new AdminPlatformTrendPointDto(e.getKey(), e.getValue()))
+                .toList();
+
+        double totalSalesToday = recentEntries.stream()
+                .filter(e -> e.getEntryDate().equals(LocalDate.now()))
+                .mapToDouble(DailyEntry::getTotalSales)
+                .sum();
+
+        List<AdminCityBreakdownDto> cityBreakdown = buildCityBreakdown(orgs, allBranches);
+
         return new AdminOverviewDto(orgs.size(), allBranches.size(),
-                Math.round(avgHealth * 10) / 10.0, totalStagnantValue, byCategory);
+                Math.round(avgHealth * 10) / 10.0, totalStagnantValue, totalSalesToday, byCategory,
+                salesTrend, cityBreakdown);
+    }
+
+    private List<AdminCityBreakdownDto> buildCityBreakdown(List<Organization> orgs, List<Branch> allBranches) {
+        Map<Long, Organization> orgById = orgs.stream().collect(Collectors.toMap(Organization::getId, o -> o));
+        Map<String, List<Branch>> branchesByCity = allBranches.stream()
+                .collect(Collectors.groupingBy(b -> b.getCity() == null || b.getCity().isBlank() ? "غير محدد" : b.getCity()));
+
+        return branchesByCity.entrySet().stream()
+                .map(e -> {
+                    List<Branch> cityBranches = e.getValue();
+                    long orgCount = cityBranches.stream()
+                            .map(b -> orgById.get(b.getOrganization().getId()).getId())
+                            .distinct().count();
+                    double avgScore = avgHealthScore(cityBranches);
+                    return new AdminCityBreakdownDto(e.getKey(), (int) orgCount, cityBranches.size(),
+                            Math.round(avgScore * 10) / 10.0);
+                })
+                .sorted(Comparator.comparingInt(AdminCityBreakdownDto::branchCount).reversed())
+                .toList();
     }
 
     private double avgHealthScore(List<Branch> branches) {

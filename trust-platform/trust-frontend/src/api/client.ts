@@ -619,12 +619,27 @@ export interface AdminStagnantItemDto {
   lastSaleDate: string | null;
 }
 
+export interface AdminPlatformTrendPointDto {
+  date: string;
+  totalSales: number;
+}
+
+export interface AdminCityBreakdownDto {
+  city: string;
+  organizationCount: number;
+  branchCount: number;
+  avgHealthScore: number;
+}
+
 export interface AdminOverviewDto {
   totalOrganizations: number;
   totalBranches: number;
   avgHealthScore: number;
   totalStagnantValue: number;
+  totalSalesToday: number;
   organizationsByCategory: Record<string, number>;
+  salesTrend: AdminPlatformTrendPointDto[];
+  cityBreakdown: AdminCityBreakdownDto[];
 }
 
 export async function fetchAdminOverview(): Promise<AdminOverviewDto> {
