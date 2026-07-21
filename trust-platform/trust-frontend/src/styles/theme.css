@@ -1,4 +1,19 @@
 :root {
+  /* رموز مشتركة بين الوضعين الداكن والفاتح */
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-main: 'IBM Plex Sans Arabic', 'Tajawal', sans-serif;
+
+  /* بلاطات KPI ملوّنة (من تصاميم اللوحات الجديدة) - نفس الدرجات في الوضعين لأنها كتل لونية مشبعة قائمة بذاتها */
+  --tile-green: linear-gradient(135deg, #34d399, #16a34a);
+  --tile-blue: linear-gradient(135deg, #60a5fa, #2563eb);
+  --tile-purple: linear-gradient(135deg, #a78bfa, #7c3aed);
+  --tile-orange: linear-gradient(135deg, #fb923c, #ea580c);
+  --tile-teal: linear-gradient(135deg, #2dd4bf, #0d9488);
+}
+
+:root,
+[data-theme='dark'] {
   --bg-page: #0b1220;
   --bg-panel: #111a2e;
   --bg-panel-alt: #0f1728;
@@ -17,10 +32,47 @@
   --accent-blue-bg: rgba(59, 130, 246, 0.12);
   --accent-amber: #f5a524;
   --accent-amber-bg: rgba(245, 165, 36, 0.12);
+}
 
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --font-main: 'IBM Plex Sans Arabic', 'Tajawal', sans-serif;
+[data-theme='light'] {
+  --bg-page: #f5f6fa;
+  --bg-panel: #ffffff;
+  --bg-panel-alt: #f1f3f8;
+  --border-subtle: #e5e8f0;
+  --text-primary: #182236;
+  --text-secondary: #6b7688;
+  --text-muted: #9ba4b5;
+
+  --accent-green: #16a34a;
+  --accent-green-bg: rgba(22, 163, 74, 0.1);
+  --accent-red: #dc2626;
+  --accent-red-bg: rgba(220, 38, 38, 0.1);
+  --accent-purple: #7c3aed;
+  --accent-purple-bg: rgba(124, 58, 237, 0.1);
+  --accent-blue: #2563eb;
+  --accent-blue-bg: rgba(37, 99, 235, 0.1);
+  --accent-amber: #d97706;
+  --accent-amber-bg: rgba(217, 119, 6, 0.12);
+}
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent-blue);
 }
 
 * {

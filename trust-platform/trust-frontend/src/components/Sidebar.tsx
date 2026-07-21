@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { fetchRecommendations } from '../api/client';
 import { clearSession, requireBranchId } from '../auth/session';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavItem {
   key: string;
@@ -54,6 +55,9 @@ export function Sidebar() {
           <div className="titles">
             <div className="name">TRUST</div>
             <div className="subtitle">المدير التجاري الذكي</div>
+          </div>
+          <div style={{ marginInlineStart: 'auto' }}>
+            <ThemeToggle />
           </div>
         </div>
         {items.map((item) => {
