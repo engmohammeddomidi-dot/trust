@@ -6,6 +6,7 @@ import com.trust.web.dto.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,16 +20,22 @@ public class DashboardService {
     private final RecommendationRepository recommendationRepository;
     private final HealthScoreService healthScoreService;
     private final ItemService itemService;
+    private final DecisionRepository decisionRepository;
+    private final GroupOrderParticipantRepository groupOrderParticipantRepository;
 
     public DashboardService(BranchRepository branchRepository, DailyEntryRepository dailyEntryRepository,
                              ItemRepository itemRepository, RecommendationRepository recommendationRepository,
-                             HealthScoreService healthScoreService, ItemService itemService) {
+                             HealthScoreService healthScoreService, ItemService itemService,
+                             DecisionRepository decisionRepository,
+                             GroupOrderParticipantRepository groupOrderParticipantRepository) {
         this.branchRepository = branchRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.itemRepository = itemRepository;
         this.recommendationRepository = recommendationRepository;
         this.healthScoreService = healthScoreService;
         this.itemService = itemService;
+        this.decisionRepository = decisionRepository;
+        this.groupOrderParticipantRepository = groupOrderParticipantRepository;
     }
 
     /**
@@ -85,9 +92,42 @@ public class DashboardService {
                 ? itemService.listNeedingAttention(branchId)
                 : branchIds.stream().flatMap(id -> itemService.listNeedingAttention(id).stream()).limit(10).toList();
 
+        DailyPerformanceSummaryDto dailyPerformanceSummary =
+                buildDailyPerformanceSummary(organizationId, branchIds, items, healthScore);
+
         return new DashboardResponse(salesToday, salesChange, totalProfit, profitChange, marginPercent, marginChange,
                 availableLiquidity, liquidityChange, healthScore, salesTrend, topRecs,
-                inventoryBreakdown, liquidityBreakdown, attention);
+                inventoryBreakdown, liquidityBreakdown, attention, dailyPerformanceSummary);
+    }
+
+    /** ملخص الأداء اليومي (رؤية PM: الفرص/المخاطر مباشرة على الشاشة الرئيسية بدل أرقام مجردة) */
+    private DailyPerformanceSummaryDto buildDailyPerformanceSummary(Long organizationId, List<Long> branchIds,
+                                                                      List<Item> items, HealthScoreDto healthScore) {
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+
+        double marketValueThisMonth = 0;
+        double savingsThisMonth = 0;
+        for (GroupOrderParticipant p : groupOrderParticipantRepository.findByOrganizationIdOrderByIdDesc(organizationId)) {
+            GroupOrder order = p.getGroupOrder();
+            if (order.getNegotiatedPrice() == null || order.getCreatedAt().isBefore(startOfMonth)) continue;
+            marketValueThisMonth += order.getEstimatedMarketPrice() * p.getQuantity();
+            savingsThisMonth += (order.getEstimatedMarketPrice() - order.getNegotiatedPrice()) * p.getQuantity();
+        }
+        double savingsRate = marketValueThisMonth > 0 ? Math.round(savingsThisMonth / marketValueThisMonth * 1000) / 10.0 : 0;
+
+        double purchaseVolumeNeeded = decisionRepository.findByBranchIdIn(branchIds).stream()
+                .filter(d -> d.getType() == Decision.Type.PURCHASE_ORDER)
+                .filter(d -> d.getStatus() == Decision.Status.OPEN || d.getStatus() == Decision.Status.APPROVED || d.getStatus() == Decision.Status.MODIFIED)
+                .mapToDouble(d -> (d.getApprovedQuantity() != null ? d.getApprovedQuantity() : d.getSuggestedQuantity()) * d.getItem().getCostPrice())
+                .sum();
+
+        double clearanceVolumeNeeded = items.stream()
+                .filter(i -> i.getMovementStatus() == Item.MovementStatus.SLOW || i.getMovementStatus() == Item.MovementStatus.STAGNANT)
+                .mapToDouble(i -> i.getQuantity() * i.getSalePrice())
+                .sum();
+
+        return new DailyPerformanceSummaryDto(savingsRate, Math.round(savingsThisMonth * 100) / 100.0,
+                healthScore.inventoryScore(), purchaseVolumeNeeded, clearanceVolumeNeeded);
     }
 
     private double salesSum(List<DailyEntry> entries) {

@@ -10,4 +10,5 @@ public interface DecisionRepository extends JpaRepository<Decision, Long> {
     List<Decision> findByBranchIdOrderByFinancialImpactDesc(Long branchId);
     List<Decision> findByBranchIdInAndStatusOrderByFinancialImpactDesc(List<Long> branchIds, Decision.Status status);
     List<Decision> findByBranchIdInOrderByFinancialImpactDesc(List<Long> branchIds);
+    List<Decision> findByBranchIdIn(List<Long> branchIds);
 }

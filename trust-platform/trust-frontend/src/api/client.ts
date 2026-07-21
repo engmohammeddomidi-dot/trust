@@ -95,6 +95,14 @@ export async function linkItemSupplier(itemId: number, supplierId: number, safet
   return data;
 }
 
+export interface DailyPerformanceSummaryDto {
+  groupBuySavingsRatePercent: number;
+  groupBuySavingsAmountThisMonth: number;
+  inventoryTurnoverRatePercent: number;
+  purchaseVolumeNeeded: number;
+  clearanceVolumeNeeded: number;
+}
+
 export interface DashboardResponse {
   salesToday: number;
   salesChangePercent: number;
@@ -110,6 +118,7 @@ export interface DashboardResponse {
   inventoryBreakdown: Record<string, number>;
   liquidityBreakdown: Record<string, number>;
   itemsNeedingAttention: ItemDto[];
+  dailyPerformanceSummary: DailyPerformanceSummaryDto;
 }
 
 export async function fetchDashboard(params: {

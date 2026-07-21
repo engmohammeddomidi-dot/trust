@@ -51,4 +51,11 @@ export const mockDashboard: DashboardResponse = {
     { id: 3, name: 'شوكولاتة داكنة', subCategory: null, costPrice: 4, salePrice: 9.5, marginPercent: 58, quantity: 320, inventoryValue: 1280, lastSaleDate: '2026-06-27', expiryDate: null, movementStatus: 'FAST', supplierId: null, supplierName: null, safetyStockDays: 3 },
     { id: 4, name: 'دجاج مجمد 900غ', subCategory: null, costPrice: 18, salePrice: 24, marginPercent: 25, quantity: 860, inventoryValue: 15480, lastSaleDate: '2026-06-22', expiryDate: '2026-08-31', movementStatus: 'MEDIUM', supplierId: null, supplierName: null, safetyStockDays: 3 },
   ],
+  dailyPerformanceSummary: {
+    groupBuySavingsRatePercent: 12.4,
+    groupBuySavingsAmountThisMonth: 8756,
+    inventoryTurnoverRatePercent: 78,
+    purchaseVolumeNeeded: 54230,
+    clearanceVolumeNeeded: 32480,
+  },
 };

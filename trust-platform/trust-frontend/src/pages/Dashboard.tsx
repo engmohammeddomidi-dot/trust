@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { MetricCard } from '../components/MetricCard';
+import { KpiCard } from '../components/KpiCard';
 import { HealthGauge } from '../components/HealthGauge';
 import { HealthRadar } from '../components/HealthRadar';
 import { SalesChart } from '../components/SalesChart';
@@ -18,6 +19,14 @@ const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', '�
 function todayLabel(): string {
   const d = new Date();
   return `${d.getDate()} ${arabicMonths[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function turnoverLabel(rate: number): string {
+  if (rate >= 85) return 'ممتاز';
+  if (rate >= 70) return 'جيد جدًا';
+  if (rate >= 50) return 'جيد';
+  if (rate >= 30) return 'مقبول';
+  return 'ضعيف';
 }
 
 export function Dashboard() {
@@ -106,6 +115,38 @@ export function Dashboard() {
             ⚠️ يتم عرض بيانات تجريبية — تعذّر الاتصال بالـ backend على http://localhost:8080. شغّل الـ backend لعرض بيانات حقيقية.
           </div>
         )}
+
+        <div className="section-title">ملخص الأداء اليومي</div>
+        <div className="grid-row grid-4">
+          <KpiCard
+            icon="%" iconBg="var(--accent-green-bg)"
+            label="معدل التوفير من فرص الشراء الجماعي"
+            value={`${data.dailyPerformanceSummary.groupBuySavingsRatePercent.toFixed(1)}%`}
+            caption={`↑ ${Math.round(data.dailyPerformanceSummary.groupBuySavingsAmountThisMonth).toLocaleString('ar')} شيكل هذا الشهر`}
+            captionColor="var(--accent-green)"
+          />
+          <KpiCard
+            icon="🔄" iconBg="var(--accent-blue-bg)"
+            label="معدل تدوير مخاطر ركود الأصناف"
+            value={`${Math.round(data.dailyPerformanceSummary.inventoryTurnoverRatePercent)}%`}
+            caption={turnoverLabel(data.dailyPerformanceSummary.inventoryTurnoverRatePercent)}
+            captionColor="var(--accent-blue)"
+          />
+          <KpiCard
+            icon="🛒" iconBg="var(--accent-purple-bg)"
+            label="حجم المشتريات المطلوب للأصناف التي يتطلب توفرها"
+            value={Math.round(data.dailyPerformanceSummary.purchaseVolumeNeeded).toLocaleString('ar')}
+            unit="شيكل"
+            caption="بتكلفة شراء أقل"
+          />
+          <KpiCard
+            icon="🏷️" iconBg="var(--accent-amber-bg)"
+            label="حجم المبيعات للأصناف المطلوب التخلص منها"
+            value={Math.round(data.dailyPerformanceSummary.clearanceVolumeNeeded).toLocaleString('ar')}
+            unit="شيكل"
+            caption="لتسريع دورانها"
+          />
+        </div>
 
         <div className="grid-metrics">
           <MetricCard label="المبيعات اليوم" value={data.salesToday.toLocaleString('ar')} unit="شيكل"
