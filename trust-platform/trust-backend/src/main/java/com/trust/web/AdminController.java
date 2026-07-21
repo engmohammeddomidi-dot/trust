@@ -14,14 +14,17 @@ import com.trust.repository.ItemRepository;
 import com.trust.repository.OrganizationRepository;
 import com.trust.repository.UserRepository;
 import com.trust.service.AuditLogService;
+import com.trust.service.DecisionAnalyticsService;
 import com.trust.service.HealthScoreService;
 import com.trust.web.dto.AdminCityBreakdownDto;
+import com.trust.web.dto.AdminDecisionDto;
 import com.trust.web.dto.AdminHealthDistributionDto;
 import com.trust.web.dto.AdminOrganizationDto;
 import com.trust.web.dto.AdminOverviewDto;
 import com.trust.web.dto.AdminPlatformTrendPointDto;
 import com.trust.web.dto.AdminRiskOpportunityDto;
 import com.trust.web.dto.AdminStagnantItemDto;
+import com.trust.web.dto.PerformanceImpactSummaryDto;
 import com.trust.web.dto.CreateOrganizationRequest;
 import com.trust.web.dto.CreateOrganizationResponse;
 import jakarta.validation.Valid;
@@ -57,6 +60,7 @@ public class AdminController {
     private final DailyEntryRepository dailyEntryRepository;
     private final UserRepository userRepository;
     private final DecisionRepository decisionRepository;
+    private final DecisionAnalyticsService decisionAnalyticsService;
     private final HealthScoreService healthScoreService;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
@@ -64,6 +68,7 @@ public class AdminController {
     public AdminController(OrganizationRepository organizationRepository, BranchRepository branchRepository,
                             ItemRepository itemRepository, DailyEntryRepository dailyEntryRepository,
                             UserRepository userRepository, DecisionRepository decisionRepository,
+                            DecisionAnalyticsService decisionAnalyticsService,
                             HealthScoreService healthScoreService,
                             PasswordEncoder passwordEncoder, AuditLogService auditLogService) {
         this.organizationRepository = organizationRepository;
@@ -72,6 +77,7 @@ public class AdminController {
         this.dailyEntryRepository = dailyEntryRepository;
         this.userRepository = userRepository;
         this.decisionRepository = decisionRepository;
+        this.decisionAnalyticsService = decisionAnalyticsService;
         this.healthScoreService = healthScoreService;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
@@ -219,9 +225,30 @@ public class AdminController {
                 .limit(5)
                 .toList();
 
+        PerformanceImpactSummaryDto performanceImpactSummary = decisionAnalyticsService.performanceImpactSummary(branchIds);
+        List<AdminDecisionDto> topRecommendations = buildTopRecommendations(branchIds);
+
         return new AdminOverviewDto(orgs.size(), allBranches.size(),
                 Math.round(avgHealth * 10) / 10.0, totalStagnantValue, totalSalesToday, byCategory,
-                salesTrend, cityBreakdown, riskOpportunity, healthDistribution, leaderboard);
+                salesTrend, cityBreakdown, riskOpportunity, healthDistribution, leaderboard,
+                performanceImpactSummary, topRecommendations);
+    }
+
+    private List<AdminDecisionDto> buildTopRecommendations(List<Long> branchIds) {
+        if (branchIds.isEmpty()) return List.of();
+        return decisionRepository.findByBranchIdInAndStatusOrderByFinancialImpactDesc(branchIds, Decision.Status.OPEN)
+                .stream()
+                .limit(5)
+                .map(d -> new AdminDecisionDto(d.getId(),
+                        d.getBranch().getOrganization().getName(),
+                        d.getBranch().getName(),
+                        d.getItem().getName(),
+                        d.getCategory().name(),
+                        d.getFinancialImpact(),
+                        d.getConfidenceScore(),
+                        d.getReasonSummary(),
+                        d.getCreatedAt()))
+                .toList();
     }
 
     private AdminRiskOpportunityDto buildRiskOpportunity(List<Long> branchIds) {

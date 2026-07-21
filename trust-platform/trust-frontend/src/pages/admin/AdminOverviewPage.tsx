@@ -2,7 +2,16 @@ import { useEffect, useState } from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { KpiCard } from '../../components/KpiCard';
 import { SalesChart } from '../../components/SalesChart';
+import { HealthGauge } from '../../components/HealthGauge';
 import { fetchAdminOverview, type AdminOverviewDto } from '../../api/client';
+
+function turnoverLabel(rate: number): string {
+  if (rate >= 85) return 'ممتاز';
+  if (rate >= 70) return 'جيد جدًا';
+  if (rate >= 50) return 'جيد';
+  if (rate >= 30) return 'مقبول';
+  return 'ضعيف';
+}
 
 const categoryLabel: Record<string, string> = {
   SUPERMARKET: 'سوبرماركت',
@@ -166,6 +175,39 @@ export function AdminOverviewPage() {
                   </tbody>
                 </table>
               )}
+            </div>
+
+            <div className="grid-row grid-2" style={{ marginTop: 14 }}>
+              <div className="card">
+                <div className="card-title">مؤشر الأداء والأثر الفعلي على المنصة</div>
+                {overview.performanceImpactSummary.performanceScore !== null ? (
+                  <HealthGauge
+                    score={overview.performanceImpactSummary.performanceScore}
+                    label={turnoverLabel(overview.performanceImpactSummary.performanceScore)}
+                  />
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-secondary)' }}>—</div>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>لا توجد طلبيات مستلمة بعد لحساب المؤشر</p>
+                  </div>
+                )}
+              </div>
+              <div className="card">
+                <div className="card-title">أعلى التوصيات قيمةً على المنصة</div>
+                {overview.topRecommendations.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 12 }}>لا توجد توصيات مفتوحة حاليًا</p>
+                ) : (
+                  overview.topRecommendations.map((rec) => (
+                    <div className="recommendation-row" key={rec.id}>
+                      <span className={`priority-tag ${rec.category === 'RISK' ? 'priority-HIGH' : 'priority-LOW'}`}>
+                        {rec.category === 'RISK' ? 'خطر' : 'فرصة'}
+                      </span>
+                      <span className="rec-title">{rec.organizationName} — {rec.itemName}</span>
+                      <span className="rec-value">{Math.round(rec.financialImpact).toLocaleString('ar')} شيكل</span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </>
         )}

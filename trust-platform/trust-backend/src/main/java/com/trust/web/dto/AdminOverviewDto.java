@@ -14,5 +14,7 @@ public record AdminOverviewDto(
         List<AdminCityBreakdownDto> cityBreakdown,
         AdminRiskOpportunityDto riskOpportunity,
         AdminHealthDistributionDto healthDistribution,
-        List<AdminOrganizationDto> leaderboard
+        List<AdminOrganizationDto> leaderboard,
+        PerformanceImpactSummaryDto performanceImpactSummary,
+        List<AdminDecisionDto> topRecommendations
 ) {}

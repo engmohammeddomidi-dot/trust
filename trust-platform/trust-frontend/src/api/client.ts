@@ -644,6 +644,18 @@ export interface AdminHealthDistributionDto {
   poor: number;
 }
 
+export interface AdminDecisionDto {
+  id: number;
+  organizationName: string;
+  branchName: string;
+  itemName: string;
+  category: 'RISK' | 'OPPORTUNITY';
+  financialImpact: number;
+  confidenceScore: number;
+  reasonSummary: string;
+  createdAt: string;
+}
+
 export interface AdminOverviewDto {
   totalOrganizations: number;
   totalBranches: number;
@@ -656,6 +668,8 @@ export interface AdminOverviewDto {
   riskOpportunity: AdminRiskOpportunityDto;
   healthDistribution: AdminHealthDistributionDto;
   leaderboard: AdminOrganizationDto[];
+  performanceImpactSummary: PerformanceImpactSummaryDto;
+  topRecommendations: AdminDecisionDto[];
 }
 
 export async function fetchAdminOverview(): Promise<AdminOverviewDto> {
