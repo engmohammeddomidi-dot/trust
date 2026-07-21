@@ -28,17 +28,20 @@ public class RecommendationSchedulerService {
     private final RecommendationRepository recommendationRepository;
     private final PurchaseDecisionEngineService decisionEngineService;
     private final DecisionRepository decisionRepository;
+    private final HealthScoreService healthScoreService;
 
     public RecommendationSchedulerService(BranchRepository branchRepository,
                                            RecommendationEngineService engineService,
                                            RecommendationRepository recommendationRepository,
                                            PurchaseDecisionEngineService decisionEngineService,
-                                           DecisionRepository decisionRepository) {
+                                           DecisionRepository decisionRepository,
+                                           HealthScoreService healthScoreService) {
         this.branchRepository = branchRepository;
         this.engineService = engineService;
         this.recommendationRepository = recommendationRepository;
         this.decisionEngineService = decisionEngineService;
         this.decisionRepository = decisionRepository;
+        this.healthScoreService = healthScoreService;
     }
 
     /** يوميًا الساعة 6:00 صباحًا بتوقيت الخادم */
@@ -55,6 +58,8 @@ public class RecommendationSchedulerService {
             List<Decision> generatedDecisions = decisionEngineService.generateForBranch(branch);
             decisionRepository.saveAll(generatedDecisions);
             totalDecisions += generatedDecisions.size();
+
+            healthScoreService.snapshotToday(branch);
         }
         log.info("Scheduled regeneration completed for {} branch(es): {} recommendation(s), {} decision(s) upserted",
                 branches.size(), totalRecommendations, totalDecisions);

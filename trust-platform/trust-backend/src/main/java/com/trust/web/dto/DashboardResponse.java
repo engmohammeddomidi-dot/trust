@@ -19,7 +19,8 @@ public record DashboardResponse(
         Map<String, Double> liquidityBreakdown, // AVAILABLE/RECEIVABLES/PAYABLES
         List<ItemDto> itemsNeedingAttention,
         DailyPerformanceSummaryDto dailyPerformanceSummary,
-        PerformanceImpactSummaryDto performanceImpactSummary
+        PerformanceImpactSummaryDto performanceImpactSummary,
+        MonthlyImpactLedgerDto monthlyImpactLedger
 ) {
     public record SalesPoint(String date, double sales) {}
 }

@@ -30,6 +30,31 @@ public class HealthScoreService {
         this.historyRepository = historyRepository;
     }
 
+    /**
+     * يحفظ لقطة يومية من مؤشر صحة الأعمال - يُستدعى من الجدولة اليومية حتى تتراكم بيانات
+     * تاريخية حقيقية لرسم اتجاه الأداء بدل بيانات وهمية (كانت health_score_history غير
+     * مُستخدَمة إطلاقًا قبل هذا التغيير رغم وجودها في المخطط منذ البداية).
+     */
+    public void snapshotToday(Branch branch) {
+        LocalDate today = LocalDate.now();
+        HealthScoreDto score = calculate(branch, today.minusDays(30), today);
+        HealthScoreHistory snapshot = historyRepository.findByBranchIdAndScoreDate(branch.getId(), today)
+                .orElseGet(() -> {
+                    HealthScoreHistory h = new HealthScoreHistory();
+                    h.setBranch(branch);
+                    h.setScoreDate(today);
+                    return h;
+                });
+        snapshot.setSalesScore(score.salesScore());
+        snapshot.setProfitScore(score.profitScore());
+        snapshot.setPricingScore(score.pricingScore());
+        snapshot.setPurchasesScore(score.purchasesScore());
+        snapshot.setInventoryScore(score.inventoryScore());
+        snapshot.setLiquidityScore(score.liquidityScore());
+        snapshot.setTotalScore(score.totalScore());
+        historyRepository.save(snapshot);
+    }
+
     public HealthScoreDto calculate(Branch branch, LocalDate from, LocalDate to) {
         Category category = branch.getOrganization().getCategory();
         CategoryBenchmark bm = benchmarkRepository.findById(category)

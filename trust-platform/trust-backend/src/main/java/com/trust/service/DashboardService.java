@@ -23,13 +23,15 @@ public class DashboardService {
     private final DecisionRepository decisionRepository;
     private final GroupOrderParticipantRepository groupOrderParticipantRepository;
     private final DecisionAnalyticsService decisionAnalyticsService;
+    private final HealthScoreHistoryRepository healthScoreHistoryRepository;
 
     public DashboardService(BranchRepository branchRepository, DailyEntryRepository dailyEntryRepository,
                              ItemRepository itemRepository, RecommendationRepository recommendationRepository,
                              HealthScoreService healthScoreService, ItemService itemService,
                              DecisionRepository decisionRepository,
                              GroupOrderParticipantRepository groupOrderParticipantRepository,
-                             DecisionAnalyticsService decisionAnalyticsService) {
+                             DecisionAnalyticsService decisionAnalyticsService,
+                             HealthScoreHistoryRepository healthScoreHistoryRepository) {
         this.branchRepository = branchRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.itemRepository = itemRepository;
@@ -39,6 +41,7 @@ public class DashboardService {
         this.decisionRepository = decisionRepository;
         this.groupOrderParticipantRepository = groupOrderParticipantRepository;
         this.decisionAnalyticsService = decisionAnalyticsService;
+        this.healthScoreHistoryRepository = healthScoreHistoryRepository;
     }
 
     /**
@@ -98,10 +101,35 @@ public class DashboardService {
         DailyPerformanceSummaryDto dailyPerformanceSummary =
                 buildDailyPerformanceSummary(organizationId, branchIds, items, healthScore);
         PerformanceImpactSummaryDto performanceImpactSummary = decisionAnalyticsService.performanceImpactSummary(branchIds);
+        MonthlyImpactLedgerDto monthlyImpactLedger = buildMonthlyImpactLedger(branchIds, dailyPerformanceSummary);
 
         return new DashboardResponse(salesToday, salesChange, totalProfit, profitChange, marginPercent, marginChange,
                 availableLiquidity, liquidityChange, healthScore, salesTrend, topRecs,
-                inventoryBreakdown, liquidityBreakdown, attention, dailyPerformanceSummary, performanceImpactSummary);
+                inventoryBreakdown, liquidityBreakdown, attention, dailyPerformanceSummary, performanceImpactSummary,
+                monthlyImpactLedger);
+    }
+
+    /** دفتر الأثر الشهري (Monthly Impact Ledger) - رؤية PM: "العميل يرى العائد، لا الفاتورة" */
+    private MonthlyImpactLedgerDto buildMonthlyImpactLedger(List<Long> branchIds, DailyPerformanceSummaryDto dailySummary) {
+        double[] riskAndOpportunity = decisionAnalyticsService.monthlyRiskAndOpportunityImpact(branchIds);
+        double purchaseCostSavings = dailySummary.groupBuySavingsAmountThisMonth();
+        double inventoryRiskImpact = riskAndOpportunity[0];
+        double operatingProfitImpact = riskAndOpportunity[1];
+        double total = purchaseCostSavings + inventoryRiskImpact + operatingProfitImpact;
+
+        LocalDate trendFrom = LocalDate.now().minusMonths(6);
+        List<HealthScoreHistory> history = healthScoreHistoryRepository
+                .findByBranchIdInAndScoreDateBetweenOrderByScoreDateAsc(branchIds, trendFrom, LocalDate.now());
+        Map<LocalDate, List<HealthScoreHistory>> byDate = new LinkedHashMap<>();
+        for (HealthScoreHistory h : history) {
+            byDate.computeIfAbsent(h.getScoreDate(), d -> new java.util.ArrayList<>()).add(h);
+        }
+        List<MonthlyImpactLedgerDto.TrendPoint> trend = byDate.entrySet().stream()
+                .map(e -> new MonthlyImpactLedgerDto.TrendPoint(e.getKey().toString(),
+                        Math.round(e.getValue().stream().mapToDouble(HealthScoreHistory::getTotalScore).average().orElse(0) * 10) / 10.0))
+                .toList();
+
+        return new MonthlyImpactLedgerDto(purchaseCostSavings, inventoryRiskImpact, operatingProfitImpact, total, trend);
     }
 
     /** ملخص الأداء اليومي (رؤية PM: الفرص/المخاطر مباشرة على الشاشة الرئيسية بدل أرقام مجردة) */

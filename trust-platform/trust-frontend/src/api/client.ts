@@ -110,6 +110,14 @@ export interface PerformanceImpactSummaryDto {
   recommendationsCompletionRatePercent: number;
 }
 
+export interface MonthlyImpactLedgerDto {
+  purchaseCostSavings: number;
+  inventoryRiskImpact: number;
+  operatingProfitImpact: number;
+  totalFinancialImpact: number;
+  performanceTrend: { date: string; score: number }[];
+}
+
 export interface DashboardResponse {
   salesToday: number;
   salesChangePercent: number;
@@ -127,6 +135,7 @@ export interface DashboardResponse {
   itemsNeedingAttention: ItemDto[];
   dailyPerformanceSummary: DailyPerformanceSummaryDto;
   performanceImpactSummary: PerformanceImpactSummaryDto;
+  monthlyImpactLedger: MonthlyImpactLedgerDto;
 }
 
 export async function fetchDashboard(params: {

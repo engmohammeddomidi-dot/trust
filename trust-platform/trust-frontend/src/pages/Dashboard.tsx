@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { MetricCard } from '../components/MetricCard';
 import { KpiCard } from '../components/KpiCard';
+import { ImpactLedgerCard } from '../components/ImpactLedgerCard';
+import { PerformanceTrendChart } from '../components/PerformanceTrendChart';
 import { HealthGauge } from '../components/HealthGauge';
 import { HealthRadar } from '../components/HealthRadar';
 import { SalesChart } from '../components/SalesChart';
@@ -177,6 +179,16 @@ export function Dashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="grid-row grid-2">
+          <ImpactLedgerCard
+            purchaseCostSavings={data.monthlyImpactLedger.purchaseCostSavings}
+            inventoryRiskImpact={data.monthlyImpactLedger.inventoryRiskImpact}
+            operatingProfitImpact={data.monthlyImpactLedger.operatingProfitImpact}
+            total={data.monthlyImpactLedger.totalFinancialImpact}
+          />
+          <PerformanceTrendChart data={data.monthlyImpactLedger.performanceTrend} />
         </div>
 
         <div className="grid-metrics">

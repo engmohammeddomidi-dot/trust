@@ -64,4 +64,19 @@ export const mockDashboard: DashboardResponse = {
     opportunitiesResolvedCount: 27,
     recommendationsCompletionRatePercent: 74,
   },
+  monthlyImpactLedger: {
+    purchaseCostSavings: 8756,
+    inventoryRiskImpact: 6230,
+    operatingProfitImpact: 4182,
+    totalFinancialImpact: 19168,
+    performanceTrend: [
+      { date: '2026-02-01', score: 58 },
+      { date: '2026-03-01', score: 63 },
+      { date: '2026-04-01', score: 67 },
+      { date: '2026-05-01', score: 71 },
+      { date: '2026-06-01', score: 74 },
+      { date: '2026-07-01', score: 79 },
+      { date: '2026-07-21', score: 82 },
+    ],
+  },
 };

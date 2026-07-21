@@ -8,6 +8,8 @@ import com.trust.web.dto.DecisionQualityScoreDto;
 import com.trust.web.dto.PerformanceImpactSummaryDto;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -49,5 +51,25 @@ public class DecisionAnalyticsService {
                 : Math.round((double) (risksResolved + opportunitiesResolved) / decisions.size() * 1000) / 10.0;
 
         return new PerformanceImpactSummaryDto(performanceScore, (int) risksResolved, (int) opportunitiesResolved, completionRate);
+    }
+
+    /**
+     * الأثر المالي المُحقَّق هذا الشهر من قرارات الشراء المعتمدة، مقسّمًا حسب التصنيف الحقيقي:
+     * RISK (قرارات كانت لمنع نفاد وشيك) و OPPORTUNITY (قرارات استباقية لتحسين التشغيل).
+     * لا يشمل توفير الشراء الجماعي - يُحسَب ذلك بشكل منفصل من بيانات الطلبات الجماعية.
+     */
+    public double[] monthlyRiskAndOpportunityImpact(List<Long> branchIds) {
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        List<Decision> resolvedThisMonth = decisionRepository.findByBranchIdIn(branchIds).stream()
+                .filter(d -> d.getStatus() != Decision.Status.OPEN)
+                .filter(d -> d.getResolvedAt() != null && !d.getResolvedAt().isBefore(startOfMonth))
+                .toList();
+        double riskImpact = resolvedThisMonth.stream()
+                .filter(d -> d.getCategory() == Decision.Category.RISK)
+                .mapToDouble(Decision::getFinancialImpact).sum();
+        double opportunityImpact = resolvedThisMonth.stream()
+                .filter(d -> d.getCategory() == Decision.Category.OPPORTUNITY)
+                .mapToDouble(Decision::getFinancialImpact).sum();
+        return new double[]{riskImpact, opportunityImpact};
     }
 }
