@@ -3,20 +3,24 @@ package com.trust.web;
 import com.trust.domain.Branch;
 import com.trust.domain.Category;
 import com.trust.domain.DailyEntry;
+import com.trust.domain.Decision;
 import com.trust.domain.Item;
 import com.trust.domain.Organization;
 import com.trust.domain.User;
 import com.trust.repository.BranchRepository;
 import com.trust.repository.DailyEntryRepository;
+import com.trust.repository.DecisionRepository;
 import com.trust.repository.ItemRepository;
 import com.trust.repository.OrganizationRepository;
 import com.trust.repository.UserRepository;
 import com.trust.service.AuditLogService;
 import com.trust.service.HealthScoreService;
 import com.trust.web.dto.AdminCityBreakdownDto;
+import com.trust.web.dto.AdminHealthDistributionDto;
 import com.trust.web.dto.AdminOrganizationDto;
 import com.trust.web.dto.AdminOverviewDto;
 import com.trust.web.dto.AdminPlatformTrendPointDto;
+import com.trust.web.dto.AdminRiskOpportunityDto;
 import com.trust.web.dto.AdminStagnantItemDto;
 import com.trust.web.dto.CreateOrganizationRequest;
 import com.trust.web.dto.CreateOrganizationResponse;
@@ -52,19 +56,22 @@ public class AdminController {
     private final ItemRepository itemRepository;
     private final DailyEntryRepository dailyEntryRepository;
     private final UserRepository userRepository;
+    private final DecisionRepository decisionRepository;
     private final HealthScoreService healthScoreService;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
     public AdminController(OrganizationRepository organizationRepository, BranchRepository branchRepository,
                             ItemRepository itemRepository, DailyEntryRepository dailyEntryRepository,
-                            UserRepository userRepository, HealthScoreService healthScoreService,
+                            UserRepository userRepository, DecisionRepository decisionRepository,
+                            HealthScoreService healthScoreService,
                             PasswordEncoder passwordEncoder, AuditLogService auditLogService) {
         this.organizationRepository = organizationRepository;
         this.branchRepository = branchRepository;
         this.itemRepository = itemRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.userRepository = userRepository;
+        this.decisionRepository = decisionRepository;
         this.healthScoreService = healthScoreService;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
@@ -123,6 +130,10 @@ public class AdminController {
 
     @GetMapping("/organizations")
     public List<AdminOrganizationDto> listOrganizations() {
+        return buildOrganizationList();
+    }
+
+    private List<AdminOrganizationDto> buildOrganizationList() {
         List<Organization> orgs = organizationRepository.findAll();
         List<Branch> branches = branchRepository.findByOrganizationIdIn(orgs.stream().map(Organization::getId).toList());
         Map<Long, List<Branch>> branchesByOrg = branches.stream().collect(Collectors.groupingBy(b -> b.getOrganization().getId()));
@@ -199,10 +210,49 @@ public class AdminController {
                 .sum();
 
         List<AdminCityBreakdownDto> cityBreakdown = buildCityBreakdown(orgs, allBranches);
+        AdminRiskOpportunityDto riskOpportunity = buildRiskOpportunity(branchIds);
+
+        List<AdminOrganizationDto> allOrgs = buildOrganizationList();
+        AdminHealthDistributionDto healthDistribution = buildHealthDistribution(allOrgs);
+        List<AdminOrganizationDto> leaderboard = allOrgs.stream()
+                .sorted(Comparator.comparingDouble(AdminOrganizationDto::avgHealthScore).reversed())
+                .limit(5)
+                .toList();
 
         return new AdminOverviewDto(orgs.size(), allBranches.size(),
                 Math.round(avgHealth * 10) / 10.0, totalStagnantValue, totalSalesToday, byCategory,
-                salesTrend, cityBreakdown);
+                salesTrend, cityBreakdown, riskOpportunity, healthDistribution, leaderboard);
+    }
+
+    private AdminRiskOpportunityDto buildRiskOpportunity(List<Long> branchIds) {
+        List<Decision> openDecisions = branchIds.isEmpty() ? List.of()
+                : decisionRepository.findByBranchIdIn(branchIds).stream()
+                        .filter(d -> d.getStatus() == Decision.Status.OPEN)
+                        .toList();
+        int risksCount = 0;
+        double risksValue = 0;
+        int opportunitiesCount = 0;
+        double opportunitiesValue = 0;
+        for (Decision d : openDecisions) {
+            if (d.getCategory() == Decision.Category.RISK) {
+                risksCount++;
+                risksValue += d.getFinancialImpact();
+            } else {
+                opportunitiesCount++;
+                opportunitiesValue += d.getFinancialImpact();
+            }
+        }
+        return new AdminRiskOpportunityDto(risksCount, risksValue, opportunitiesCount, opportunitiesValue);
+    }
+
+    private AdminHealthDistributionDto buildHealthDistribution(List<AdminOrganizationDto> orgs) {
+        int good = 0, medium = 0, poor = 0;
+        for (AdminOrganizationDto org : orgs) {
+            if (org.avgHealthScore() >= 61) good++;
+            else if (org.avgHealthScore() >= 41) medium++;
+            else poor++;
+        }
+        return new AdminHealthDistributionDto(good, medium, poor);
     }
 
     private List<AdminCityBreakdownDto> buildCityBreakdown(List<Organization> orgs, List<Branch> allBranches) {

@@ -631,6 +631,19 @@ export interface AdminCityBreakdownDto {
   avgHealthScore: number;
 }
 
+export interface AdminRiskOpportunityDto {
+  openRisksCount: number;
+  openRisksValue: number;
+  openOpportunitiesCount: number;
+  openOpportunitiesValue: number;
+}
+
+export interface AdminHealthDistributionDto {
+  good: number;
+  medium: number;
+  poor: number;
+}
+
 export interface AdminOverviewDto {
   totalOrganizations: number;
   totalBranches: number;
@@ -640,6 +653,9 @@ export interface AdminOverviewDto {
   organizationsByCategory: Record<string, number>;
   salesTrend: AdminPlatformTrendPointDto[];
   cityBreakdown: AdminCityBreakdownDto[];
+  riskOpportunity: AdminRiskOpportunityDto;
+  healthDistribution: AdminHealthDistributionDto;
+  leaderboard: AdminOrganizationDto[];
 }
 
 export async function fetchAdminOverview(): Promise<AdminOverviewDto> {

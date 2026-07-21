@@ -11,5 +11,8 @@ public record AdminOverviewDto(
         double totalSalesToday,
         Map<String, Long> organizationsByCategory,
         List<AdminPlatformTrendPointDto> salesTrend,
-        List<AdminCityBreakdownDto> cityBreakdown
+        List<AdminCityBreakdownDto> cityBreakdown,
+        AdminRiskOpportunityDto riskOpportunity,
+        AdminHealthDistributionDto healthDistribution,
+        List<AdminOrganizationDto> leaderboard
 ) {}

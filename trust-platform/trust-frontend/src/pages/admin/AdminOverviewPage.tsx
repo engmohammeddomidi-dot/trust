@@ -13,6 +13,12 @@ const categoryLabel: Record<string, string> = {
   COMPANY_OTHER: 'أخرى',
 };
 
+function scoreColor(score: number): string {
+  if (score >= 61) return 'var(--accent-green)';
+  if (score >= 41) return 'var(--accent-amber)';
+  return 'var(--accent-red)';
+}
+
 export function AdminOverviewPage() {
   const [overview, setOverview] = useState<AdminOverviewDto | null>(null);
 
@@ -93,6 +99,73 @@ export function AdminOverviewPage() {
                   فرصة محتملة لتصريف/شراء جماعي بين المؤسسات — راجع صفحة "الأصناف الراكدة"
                 </p>
               </div>
+            </div>
+
+            <div className="grid-row grid-2" style={{ marginTop: 14, marginBottom: 14 }}>
+              <div className="card">
+                <div className="card-title">المخاطر والفرص المفتوحة على المنصة</div>
+                <div className="grid-row grid-2" style={{ marginBottom: 0 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-red)' }}>{overview.riskOpportunity.openRisksCount}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>مخاطر مفتوحة</div>
+                    <div style={{ fontSize: 13, color: 'var(--accent-red)', marginTop: 4 }}>
+                      {Math.round(overview.riskOpportunity.openRisksValue).toLocaleString('ar')} شيكل
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-green)' }}>{overview.riskOpportunity.openOpportunitiesCount}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>فرص مفتوحة</div>
+                    <div style={{ fontSize: 13, color: 'var(--accent-green)', marginTop: 4 }}>
+                      {Math.round(overview.riskOpportunity.openOpportunitiesValue).toLocaleString('ar')} شيكل
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="card">
+                <div className="card-title">توزيع صحة الأعمال بين المؤسسات</div>
+                <div className="grid-row grid-3" style={{ marginBottom: 0 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-green)' }}>{overview.healthDistribution.good}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>جيدة (61+)</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-amber)' }}>{overview.healthDistribution.medium}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>متوسطة (41-60)</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-red)' }}>{overview.healthDistribution.poor}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>ضعيفة (تحت 41)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-title">الأعلى أداءً بين المؤسسات</div>
+              {overview.leaderboard.length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)', fontSize: 12 }}>لا توجد بيانات كافية بعد</p>
+              ) : (
+                <table className="attention-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>المؤسسة</th>
+                      <th>التصنيف</th>
+                      <th>صحة الأعمال</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overview.leaderboard.map((org, i) => (
+                      <tr key={org.id}>
+                        <td>{i + 1}</td>
+                        <td>{org.name}</td>
+                        <td>{categoryLabel[org.category] ?? org.category}</td>
+                        <td style={{ color: scoreColor(org.avgHealthScore), fontWeight: 700 }}>{org.avgHealthScore}/100</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </>
         )}
