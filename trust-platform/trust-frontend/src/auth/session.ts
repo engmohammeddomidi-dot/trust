@@ -4,7 +4,7 @@ export interface Session {
   userId: number;
   name: string;
   email: string;
-  role: 'OWNER' | 'BRANCH_MANAGER' | 'STAFF' | 'PLATFORM_ADMIN';
+  role: 'OWNER' | 'BRANCH_MANAGER' | 'STAFF' | 'PLATFORM_ADMIN' | 'SUPPLIER';
   organizationId: number | null;
   organizationName: string | null;
   branchId: number | null;
@@ -39,6 +39,10 @@ export function clearSession(): void {
 
 export function isAdmin(): boolean {
   return getSession()?.role === 'PLATFORM_ADMIN';
+}
+
+export function isSupplier(): boolean {
+  return getSession()?.role === 'SUPPLIER';
 }
 
 /** الفروع والمؤسسات دائمًا معروفة داخل الصفحات المحمية بـ RequireAuth غير الإدارية */

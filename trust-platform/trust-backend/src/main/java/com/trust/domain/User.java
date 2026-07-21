@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class User {
 
-    public enum Role { OWNER, BRANCH_MANAGER, STAFF, PLATFORM_ADMIN }
+    public enum Role { OWNER, BRANCH_MANAGER, STAFF, PLATFORM_ADMIN, SUPPLIER }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +24,7 @@ public class User {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
-    private Organization organization; // null for PLATFORM_ADMIN
+    private Organization organization; // null for PLATFORM_ADMIN and SUPPLIER (cross-tenant identity)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id")

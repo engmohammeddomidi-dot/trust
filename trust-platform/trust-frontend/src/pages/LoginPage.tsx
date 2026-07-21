@@ -22,13 +22,15 @@ export function LoginPage() {
         userId: res.user.id,
         name: res.user.name,
         email: res.user.email,
-        role: res.user.role as 'OWNER' | 'BRANCH_MANAGER' | 'STAFF' | 'PLATFORM_ADMIN',
+        role: res.user.role as 'OWNER' | 'BRANCH_MANAGER' | 'STAFF' | 'PLATFORM_ADMIN' | 'SUPPLIER',
         organizationId: res.user.organizationId,
         organizationName: res.user.organizationName,
         branchId: res.user.branchId,
         tosAccepted: res.user.tosAccepted,
       });
-      navigate(res.user.role === 'PLATFORM_ADMIN' ? '/admin' : '/', { replace: true });
+      const destination = res.user.role === 'PLATFORM_ADMIN' ? '/admin'
+        : res.user.role === 'SUPPLIER' ? '/supplier' : '/';
+      navigate(destination, { replace: true });
     } catch (err) {
       const status = (err as { response?: { status?: number; data?: { message?: string } } })?.response?.status;
       if (status === 429) {
@@ -84,7 +86,7 @@ export function LoginPage() {
         </form>
 
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 16, textAlign: 'center' }}>
-          للتجربة: owner@trust.demo / password123 (مؤسسة) — admin@trust.demo / admin123 (أدمن المنصة)
+          للتجربة: owner@trust.demo / password123 (مؤسسة) — admin@trust.demo / admin123 (أدمن المنصة) — supplier@trust.demo / supplier123 (بوابة المورد)
         </p>
       </div>
     </div>

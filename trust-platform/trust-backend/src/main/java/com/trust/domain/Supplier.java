@@ -30,6 +30,9 @@ public class Supplier {
 
     private String contactInfo;
 
+    /** بريد المورّد - يُستخدم لربط حساب بوابة المورد (دور SUPPLIER) بسجلات هذا المورد عبر كل المؤسسات */
+    private String email;
+
     /** عدد الأيام بين إصدار أمر الشراء واستلام البضاعة */
     @Column(nullable = false)
     private int leadTimeDays = 5;

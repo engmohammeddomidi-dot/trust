@@ -24,6 +24,8 @@ import com.trust.web.dto.AdminOverviewDto;
 import com.trust.web.dto.AdminPlatformTrendPointDto;
 import com.trust.web.dto.AdminRiskOpportunityDto;
 import com.trust.web.dto.AdminStagnantItemDto;
+import com.trust.web.dto.CreateSupplierUserRequest;
+import com.trust.web.dto.CreateSupplierUserResponse;
 import com.trust.web.dto.PerformanceImpactSummaryDto;
 import com.trust.web.dto.CreateOrganizationRequest;
 import com.trust.web.dto.CreateOrganizationResponse;
@@ -124,6 +126,30 @@ public class AdminController {
                 "name=" + org.getName() + ", ownerEmail=" + owner.getEmail());
 
         return new CreateOrganizationResponse(org.getId(), org.getName(), branch.getId(), owner.getEmail(), temporaryPassword);
+    }
+
+    /** ينشئ حساب دخول لمورّد (دور SUPPLIER، بلا مؤسسة/فرع) - يُربط بسجلات Supplier عبر البريد */
+    @PostMapping("/supplier-users")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CreateSupplierUserResponse createSupplierUser(@Valid @RequestBody CreateSupplierUserRequest request,
+                                                           @AuthenticationPrincipal AuthenticatedUser principal) {
+        if (userRepository.findByEmail(request.email()).isPresent()) {
+            throw new IllegalStateException("البريد الإلكتروني مستخدم مسبقًا");
+        }
+
+        String temporaryPassword = generatePassword();
+        User supplierUser = new User();
+        supplierUser.setName(request.name());
+        supplierUser.setEmail(request.email());
+        supplierUser.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        supplierUser.setRole(User.Role.SUPPLIER);
+        supplierUser.setActive(true);
+        supplierUser = userRepository.save(supplierUser);
+
+        auditLogService.record(null, principal.email(), "CREATE_SUPPLIER_USER", "User", supplierUser.getId().toString(),
+                "email=" + supplierUser.getEmail());
+
+        return new CreateSupplierUserResponse(supplierUser.getId(), supplierUser.getEmail(), temporaryPassword);
     }
 
     private static String generatePassword() {

@@ -335,6 +335,7 @@ export interface SupplierDto {
   id: number;
   name: string;
   contactInfo: string | null;
+  email: string | null;
   leadTimeDays: number;
   creditTermsDays: number;
   rating: number;
@@ -345,12 +346,12 @@ export async function fetchSuppliers(organizationId: number): Promise<SupplierDt
   return data;
 }
 
-export async function createSupplier(req: { organizationId: number; name: string; contactInfo?: string; leadTimeDays: number; creditTermsDays: number; rating: number }): Promise<SupplierDto> {
+export async function createSupplier(req: { organizationId: number; name: string; contactInfo?: string; email?: string; leadTimeDays: number; creditTermsDays: number; rating: number }): Promise<SupplierDto> {
   const { data } = await apiClient.post<SupplierDto>('/suppliers', req);
   return data;
 }
 
-export async function updateSupplier(id: number, req: { name: string; contactInfo?: string; leadTimeDays: number; creditTermsDays: number; rating: number }): Promise<SupplierDto> {
+export async function updateSupplier(id: number, req: { name: string; contactInfo?: string; email?: string; leadTimeDays: number; creditTermsDays: number; rating: number }): Promise<SupplierDto> {
   const { data } = await apiClient.put<SupplierDto>(`/suppliers/${id}`, req);
   return data;
 }
@@ -769,5 +770,39 @@ export async function fetchAdminBenchmarks(): Promise<CategoryBenchmarkDto[]> {
 
 export async function updateAdminBenchmark(category: string, req: Omit<CategoryBenchmarkDto, 'category'>): Promise<CategoryBenchmarkDto> {
   const { data } = await apiClient.put<CategoryBenchmarkDto>(`/admin/benchmarks/${category}`, req);
+  return data;
+}
+
+export async function createSupplierUser(req: { name: string; email: string }): Promise<{ userId: number; email: string; temporaryPassword: string }> {
+  const { data } = await apiClient.post('/admin/supplier-users', req);
+  return data;
+}
+
+export interface SupplierPortalPurchaseDto {
+  id: number;
+  organizationName: string;
+  branchName: string;
+  itemName: string | null;
+  quantity: number;
+  costPrice: number;
+  status: 'SENT' | 'RECEIVED';
+  purchaseDate: string;
+  expectedDeliveryDate: string;
+  receivedDate: string | null;
+}
+
+export interface SupplierPortalOverviewDto {
+  supplierName: string;
+  organizationsServedCount: number;
+  openOrdersCount: number;
+  openOrdersValue: number;
+  receivedOrdersCount: number;
+  totalReceivedValue: number;
+  avgRating: number | null;
+  recentOrders: SupplierPortalPurchaseDto[];
+}
+
+export async function fetchSupplierOverview(): Promise<SupplierPortalOverviewDto> {
+  const { data } = await apiClient.get<SupplierPortalOverviewDto>('/supplier/overview');
   return data;
 }

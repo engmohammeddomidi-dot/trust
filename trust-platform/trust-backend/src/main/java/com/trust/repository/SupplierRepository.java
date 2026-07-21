@@ -8,4 +8,5 @@ import java.util.List;
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     List<Supplier> findByOrganizationId(Long organizationId);
     List<Supplier> findByOrganizationIdIn(List<Long> organizationIds);
+    List<Supplier> findByEmailIgnoreCase(String email);
 }

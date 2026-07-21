@@ -31,6 +31,7 @@ public class SupplierService {
         supplier.setOrganization(org);
         supplier.setName(req.name());
         supplier.setContactInfo(req.contactInfo());
+        supplier.setEmail(req.email());
         supplier.setLeadTimeDays(req.leadTimeDays());
         supplier.setCreditTermsDays(req.creditTermsDays());
         supplier.setRating(req.rating() > 0 ? req.rating() : 80.0);
@@ -47,6 +48,7 @@ public class SupplierService {
                 .orElseThrow(() -> new NoSuchElementException("المورد غير موجود"));
         supplier.setName(req.name());
         supplier.setContactInfo(req.contactInfo());
+        supplier.setEmail(req.email());
         supplier.setLeadTimeDays(req.leadTimeDays());
         supplier.setCreditTermsDays(req.creditTermsDays());
         supplier.setRating(req.rating());
@@ -58,7 +60,7 @@ public class SupplierService {
     }
 
     private SupplierDto toDto(Supplier s) {
-        return new SupplierDto(s.getId(), s.getName(), s.getContactInfo(), s.getLeadTimeDays(),
+        return new SupplierDto(s.getId(), s.getName(), s.getContactInfo(), s.getEmail(), s.getLeadTimeDays(),
                 s.getCreditTermsDays(), s.getRating());
     }
 }

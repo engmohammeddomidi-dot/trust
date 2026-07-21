@@ -8,6 +8,7 @@ public record SupplierCreateRequest(
         @NotNull Long organizationId,
         @NotBlank String name,
         String contactInfo,
+        String email,
         @PositiveOrZero int leadTimeDays,
         @PositiveOrZero int creditTermsDays,
         double rating

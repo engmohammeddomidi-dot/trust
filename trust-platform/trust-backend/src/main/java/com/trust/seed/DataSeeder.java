@@ -28,12 +28,14 @@ public class DataSeeder implements CommandLineRunner {
     private final DailyEntryRepository dailyEntryRepository;
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
+    private final PurchaseRepository purchaseRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(OrganizationRepository organizationRepository, BranchRepository branchRepository,
                        CategoryBenchmarkRepository benchmarkRepository, ItemRepository itemRepository,
                        DailyEntryRepository dailyEntryRepository, UserRepository userRepository,
-                       SupplierRepository supplierRepository, PasswordEncoder passwordEncoder) {
+                       SupplierRepository supplierRepository, PurchaseRepository purchaseRepository,
+                       PasswordEncoder passwordEncoder) {
         this.organizationRepository = organizationRepository;
         this.branchRepository = branchRepository;
         this.benchmarkRepository = benchmarkRepository;
@@ -41,6 +43,7 @@ public class DataSeeder implements CommandLineRunner {
         this.dailyEntryRepository = dailyEntryRepository;
         this.userRepository = userRepository;
         this.supplierRepository = supplierRepository;
+        this.purchaseRepository = purchaseRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -92,8 +95,8 @@ public class DataSeeder implements CommandLineRunner {
         Item rice = saveItem(branch, "أرز بسمتي 5 كغ", 22.0, 27.0, 500, LocalDate.now().minusDays(3), null);
         Item oliveOil = saveItem(branch, "زيت زيتون 1 لتر", 30.0, 42.0, 150, LocalDate.now().minusDays(2), null);
 
-        seedSuppliers(org, rice, oliveOil);
-        seedSecondOrganization();
+        Supplier mainSupplier = seedSuppliers(org, rice, oliveOil);
+        seedSecondOrganization(mainSupplier);
         seedUsers(org, branch);
     }
 
@@ -101,11 +104,12 @@ public class DataSeeder implements CommandLineRunner {
      * موردون تجريبيون - يُربط بعضهم بأصناف سريعة الحركة حتى يُنتج محرك قرار الشراء
      * (PurchaseDecisionEngineService) توصية حقيقية مدعومة بمدة توريد فعلية عند أول تشغيل.
      */
-    private void seedSuppliers(Organization org, Item rice, Item oliveOil) {
+    private Supplier seedSuppliers(Organization org, Item rice, Item oliveOil) {
         Supplier mainSupplier = new Supplier();
         mainSupplier.setOrganization(org);
         mainSupplier.setName("شركة الأمين للتوريدات");
         mainSupplier.setContactInfo("0599123456");
+        mainSupplier.setEmail("supplier@trust.demo");
         mainSupplier.setLeadTimeDays(5);
         mainSupplier.setCreditTermsDays(30);
         mainSupplier.setRating(92);
@@ -127,10 +131,24 @@ public class DataSeeder implements CommandLineRunner {
         oliveOil.setSupplier(mainSupplier);
         oliveOil.setSafetyStockDays(3);
         itemRepository.save(oliveOil);
+
+        // أمر شراء مفتوح (بانتظار التوريد) عبر بوابة المورد - إدخال مباشر مثل النمط اليدوي القديم
+        Purchase openPurchase = new Purchase();
+        openPurchase.setBranch(rice.getBranch());
+        openPurchase.setItem(rice);
+        openPurchase.setSupplier(mainSupplier);
+        openPurchase.setSupplierName(mainSupplier.getName());
+        openPurchase.setQuantity(700);
+        openPurchase.setCostPrice(rice.getCostPrice());
+        openPurchase.setPurchaseDate(LocalDate.now().minusDays(1));
+        openPurchase.setStatus(Purchase.Status.SENT);
+        purchaseRepository.save(openPurchase);
+
+        return mainSupplier;
     }
 
-    /** مؤسسة ثانية بسيطة لغرض تجربة تجميع البيانات عبر المؤسسات في لوحة الأدمن */
-    private void seedSecondOrganization() {
+    /** مؤسسة ثانية بسيطة لغرض تجربة تجميع البيانات عبر المؤسسات في لوحة الأدمن وبوابة المورد */
+    private void seedSecondOrganization(Supplier sharedSupplier) {
         Organization pharmacy = new Organization();
         pharmacy.setName("صيدلية الشفاء");
         pharmacy.setCategory(Category.PHARMACY);
@@ -154,8 +172,39 @@ public class DataSeeder implements CommandLineRunner {
         dailyEntryRepository.save(entry);
 
         saveItem(branch, "باراسيتامول 500مغ", 2.5, 4.0, 900, LocalDate.now().minusDays(70), LocalDate.now().plusDays(180));
-        saveItem(branch, "فيتامين سي فوار", 6.0, 11.0, 60, LocalDate.now().minusDays(4), LocalDate.now().plusDays(300));
+        Item vitaminC = saveItem(branch, "فيتامين سي فوار", 6.0, 11.0, 60, LocalDate.now().minusDays(4), LocalDate.now().plusDays(300));
         saveItem(branch, "كريم مرطب", 9.0, 18.0, 210, LocalDate.now().minusDays(90), null);
+
+        // نفس المورّد الحقيقي (بريد مطابق) يخدم هذه المؤسسة أيضًا - سجل Supplier منفصل خاص بهذه المؤسسة
+        // (كل مؤسسة تحتفظ بتقييمها وشروطها الخاصة)، لكنه يرتبط بحساب بوابة المورد نفسه عبر البريد
+        Supplier pharmacySupplier = new Supplier();
+        pharmacySupplier.setOrganization(pharmacy);
+        pharmacySupplier.setName(sharedSupplier.getName());
+        pharmacySupplier.setContactInfo(sharedSupplier.getContactInfo());
+        pharmacySupplier.setEmail(sharedSupplier.getEmail());
+        pharmacySupplier.setLeadTimeDays(6);
+        pharmacySupplier.setCreditTermsDays(30);
+        pharmacySupplier.setRating(85);
+        pharmacySupplier = supplierRepository.save(pharmacySupplier);
+
+        vitaminC.setSupplier(pharmacySupplier);
+        vitaminC.setSafetyStockDays(3);
+        itemRepository.save(vitaminC);
+
+        // أمر شراء مستلم سابقًا لنفس المورد من هذه المؤسسة - يثبت أن بوابة المورد تجمع بيانات
+        // حقيقية عبر أكثر من مؤسسة مستأجرة، وليس فقط من المؤسسة التي أُنشئ فيها الحساب
+        Purchase receivedPurchase = new Purchase();
+        receivedPurchase.setBranch(branch);
+        receivedPurchase.setItem(vitaminC);
+        receivedPurchase.setSupplier(pharmacySupplier);
+        receivedPurchase.setSupplierName(pharmacySupplier.getName());
+        receivedPurchase.setQuantity(60);
+        receivedPurchase.setCostPrice(vitaminC.getCostPrice());
+        receivedPurchase.setPurchaseDate(LocalDate.now().minusDays(10));
+        receivedPurchase.setStatus(Purchase.Status.RECEIVED);
+        receivedPurchase.setReceivedQuantity(60.0);
+        receivedPurchase.setReceivedDate(LocalDate.now().minusDays(5));
+        purchaseRepository.save(receivedPurchase);
     }
 
     private void seedUsers(Organization org, Branch branch) {
@@ -174,6 +223,13 @@ public class DataSeeder implements CommandLineRunner {
         admin.setPasswordHash(passwordEncoder.encode("admin123"));
         admin.setRole(User.Role.PLATFORM_ADMIN);
         userRepository.save(admin);
+
+        User supplierUser = new User();
+        supplierUser.setName("شركة الأمين للتوريدات");
+        supplierUser.setEmail("supplier@trust.demo");
+        supplierUser.setPasswordHash(passwordEncoder.encode("supplier123"));
+        supplierUser.setRole(User.Role.SUPPLIER);
+        userRepository.save(supplierUser);
     }
 
     private Item saveItem(Branch branch, String name, double cost, double price, double qty,

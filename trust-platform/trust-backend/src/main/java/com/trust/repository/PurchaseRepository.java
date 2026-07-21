@@ -13,4 +13,5 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
     Optional<Purchase> findByDecisionId(Long decisionId);
     List<Purchase> findByBranchIdAndDecisionIsNotNull(Long branchId);
     List<Purchase> findByBranchIdInAndDecisionIsNotNull(List<Long> branchIds);
+    List<Purchase> findBySupplierIdInOrderByPurchaseDateDesc(List<Long> supplierIds);
 }

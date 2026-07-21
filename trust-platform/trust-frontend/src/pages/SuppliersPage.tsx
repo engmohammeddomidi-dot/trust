@@ -65,6 +65,7 @@ function SupplierFormModal({
 }) {
   const [name, setName] = useState(supplier?.name ?? '');
   const [contactInfo, setContactInfo] = useState(supplier?.contactInfo ?? '');
+  const [email, setEmail] = useState(supplier?.email ?? '');
   const [leadTimeDays, setLeadTimeDays] = useState(String(supplier?.leadTimeDays ?? 5));
   const [creditTermsDays, setCreditTermsDays] = useState(String(supplier?.creditTermsDays ?? 0));
   const [rating, setRating] = useState(String(supplier?.rating ?? 80));
@@ -82,6 +83,7 @@ function SupplierFormModal({
       const payload = {
         name: name.trim(),
         contactInfo: contactInfo.trim() || undefined,
+        email: email.trim() || undefined,
         leadTimeDays: Number(leadTimeDays) || 0,
         creditTermsDays: Number(creditTermsDays) || 0,
         rating: Number(rating) || 0,
@@ -107,7 +109,11 @@ function SupplierFormModal({
       </div>
       <div className="form-group">
         <label>معلومات التواصل</label>
-        <input value={contactInfo} onChange={(e) => setContactInfo(e.target.value)} placeholder="رقم هاتف أو بريد إلكتروني" />
+        <input value={contactInfo} onChange={(e) => setContactInfo(e.target.value)} placeholder="رقم هاتف" />
+      </div>
+      <div className="form-group">
+        <label>البريد الإلكتروني</label>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="لربط حساب بوابة المورد" />
       </div>
       <div className="grid-row grid-2">
         <div className="form-group">
@@ -183,6 +189,7 @@ export function SuppliersPage() {
                 <tr>
                   <th>المورد</th>
                   <th>معلومات التواصل</th>
+                  <th>البريد الإلكتروني</th>
                   <th>مدة التوريد</th>
                   <th>مدة الائتمان</th>
                   <th>التقييم</th>
@@ -194,6 +201,7 @@ export function SuppliersPage() {
                   <tr key={s.id}>
                     <td>{s.name}</td>
                     <td>{s.contactInfo ?? '-'}</td>
+                    <td>{s.email ?? '-'}</td>
                     <td>{s.leadTimeDays} يوم</td>
                     <td>{s.creditTermsDays} يوم</td>
                     <td><span className={`status-chip ${ratingClass(s.rating)}`}>{s.rating.toFixed(0)}%</span></td>
