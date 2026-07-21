@@ -110,6 +110,23 @@ export interface PerformanceImpactSummaryDto {
   recommendationsCompletionRatePercent: number;
 }
 
+export interface TopItemDto {
+  itemName: string;
+  value: number;
+}
+
+export interface ExecutiveAlertDto {
+  type: 'GROUP_ORDER' | 'LOW_STOCK' | 'SLOW_MOVING';
+  label: string;
+  count: number;
+}
+
+export interface ExecutiveActionCenterDto {
+  topProfitabilityItems: TopItemDto[];
+  topAccumulatedCostItems: TopItemDto[];
+  alerts: ExecutiveAlertDto[];
+}
+
 export interface MonthlyImpactLedgerDto {
   purchaseCostSavings: number;
   inventoryRiskImpact: number;
@@ -136,6 +153,7 @@ export interface DashboardResponse {
   dailyPerformanceSummary: DailyPerformanceSummaryDto;
   performanceImpactSummary: PerformanceImpactSummaryDto;
   monthlyImpactLedger: MonthlyImpactLedgerDto;
+  executiveActionCenter: ExecutiveActionCenterDto;
 }
 
 export async function fetchDashboard(params: {

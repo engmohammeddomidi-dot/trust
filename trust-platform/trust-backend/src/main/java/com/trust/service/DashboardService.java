@@ -24,6 +24,7 @@ public class DashboardService {
     private final GroupOrderParticipantRepository groupOrderParticipantRepository;
     private final DecisionAnalyticsService decisionAnalyticsService;
     private final HealthScoreHistoryRepository healthScoreHistoryRepository;
+    private final GroupOrderRepository groupOrderRepository;
 
     public DashboardService(BranchRepository branchRepository, DailyEntryRepository dailyEntryRepository,
                              ItemRepository itemRepository, RecommendationRepository recommendationRepository,
@@ -31,7 +32,8 @@ public class DashboardService {
                              DecisionRepository decisionRepository,
                              GroupOrderParticipantRepository groupOrderParticipantRepository,
                              DecisionAnalyticsService decisionAnalyticsService,
-                             HealthScoreHistoryRepository healthScoreHistoryRepository) {
+                             HealthScoreHistoryRepository healthScoreHistoryRepository,
+                             GroupOrderRepository groupOrderRepository) {
         this.branchRepository = branchRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.itemRepository = itemRepository;
@@ -42,6 +44,7 @@ public class DashboardService {
         this.groupOrderParticipantRepository = groupOrderParticipantRepository;
         this.decisionAnalyticsService = decisionAnalyticsService;
         this.healthScoreHistoryRepository = healthScoreHistoryRepository;
+        this.groupOrderRepository = groupOrderRepository;
     }
 
     /**
@@ -102,11 +105,46 @@ public class DashboardService {
                 buildDailyPerformanceSummary(organizationId, branchIds, items, healthScore);
         PerformanceImpactSummaryDto performanceImpactSummary = decisionAnalyticsService.performanceImpactSummary(branchIds);
         MonthlyImpactLedgerDto monthlyImpactLedger = buildMonthlyImpactLedger(branchIds, dailyPerformanceSummary);
+        ExecutiveActionCenterDto executiveActionCenter = buildExecutiveActionCenter(items, branchIds);
 
         return new DashboardResponse(salesToday, salesChange, totalProfit, profitChange, marginPercent, marginChange,
                 availableLiquidity, liquidityChange, healthScore, salesTrend, topRecs,
                 inventoryBreakdown, liquidityBreakdown, attention, dailyPerformanceSummary, performanceImpactSummary,
-                monthlyImpactLedger);
+                monthlyImpactLedger, executiveActionCenter);
+    }
+
+    /** أعلى الأصناف تأثيرًا + تنبيهات تنفيذية حقيقية (لا توجد "عروض موردين" مُصطنعة - لا يوجد نموذج بيانات لها بعد) */
+    private ExecutiveActionCenterDto buildExecutiveActionCenter(List<Item> items, List<Long> branchIds) {
+        List<ExecutiveActionCenterDto.TopItemDto> topProfitability = items.stream()
+                .filter(i -> i.getMovementStatus() != Item.MovementStatus.STAGNANT)
+                .map(i -> new ExecutiveActionCenterDto.TopItemDto(i.getName(),
+                        SalesEstimator.estimateDailySales(i) * 30 * i.getSalePrice() * (i.getMarginPercent() / 100.0)))
+                .sorted((a, b) -> Double.compare(b.value(), a.value()))
+                .limit(3)
+                .toList();
+
+        List<ExecutiveActionCenterDto.TopItemDto> topAccumulatedCost = items.stream()
+                .filter(i -> i.getMovementStatus() == Item.MovementStatus.SLOW || i.getMovementStatus() == Item.MovementStatus.STAGNANT)
+                .map(i -> new ExecutiveActionCenterDto.TopItemDto(i.getName(), i.getInventoryValue()))
+                .sorted((a, b) -> Double.compare(b.value(), a.value()))
+                .limit(3)
+                .toList();
+
+        int openGroupOrders = groupOrderRepository.findByStatusOrderByCreatedAtDesc(GroupOrder.Status.COLLECTING).size();
+        long lowStockAlerts = decisionRepository.findByBranchIdIn(branchIds).stream()
+                .filter(d -> d.getStatus() == Decision.Status.OPEN && d.getCategory() == Decision.Category.RISK)
+                .count();
+        long slowMovingItems = items.stream()
+                .filter(i -> i.getMovementStatus() == Item.MovementStatus.SLOW || i.getMovementStatus() == Item.MovementStatus.STAGNANT)
+                .count();
+
+        List<ExecutiveActionCenterDto.ExecutiveAlertDto> alerts = List.of(
+                new ExecutiveActionCenterDto.ExecutiveAlertDto("GROUP_ORDER", "طلبات شراء جماعي متاحة", openGroupOrders),
+                new ExecutiveActionCenterDto.ExecutiveAlertDto("LOW_STOCK", "تنبيه مخزون منخفض", (int) lowStockAlerts),
+                new ExecutiveActionCenterDto.ExecutiveAlertDto("SLOW_MOVING", "أصناف بطيئة الحركة", (int) slowMovingItems)
+        );
+
+        return new ExecutiveActionCenterDto(topProfitability, topAccumulatedCost, alerts);
     }
 
     /** دفتر الأثر الشهري (Monthly Impact Ledger) - رؤية PM: "العميل يرى العائد، لا الفاتورة" */

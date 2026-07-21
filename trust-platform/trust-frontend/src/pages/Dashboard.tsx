@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { MetricCard } from '../components/MetricCard';
 import { KpiCard } from '../components/KpiCard';
 import { ImpactLedgerCard } from '../components/ImpactLedgerCard';
 import { PerformanceTrendChart } from '../components/PerformanceTrendChart';
+import { TopItemsCard } from '../components/TopItemsCard';
+import { AlertsPanel } from '../components/AlertsPanel';
 import { HealthGauge } from '../components/HealthGauge';
 import { HealthRadar } from '../components/HealthRadar';
 import { SalesChart } from '../components/SalesChart';
@@ -12,7 +15,10 @@ import { DonutBreakdown } from '../components/DonutBreakdown';
 import { AttentionTable } from '../components/AttentionTable';
 import { DailyEntryModal } from '../components/DailyEntryModal';
 import { NotificationBell } from '../components/NotificationBell';
-import { applyRecommendation, fetchDashboard, fetchRecommendations, type DashboardResponse } from '../api/client';
+import {
+  applyRecommendation, fetchDashboard, fetchDecisions, fetchRecommendations,
+  type DashboardResponse, type DecisionDto,
+} from '../api/client';
 import { mockDashboard } from '../api/mock';
 import { getSession, requireBranchId, requireOrganizationId } from '../auth/session';
 
@@ -37,6 +43,7 @@ export function Dashboard() {
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [applyingTop, setApplyingTop] = useState(false);
   const [openRecsTotal, setOpenRecsTotal] = useState<number | null>(null);
+  const [topDecisions, setTopDecisions] = useState<DecisionDto[] | null>(null);
   const session = getSession();
 
   function loadDashboard() {
@@ -48,6 +55,9 @@ export function Dashboard() {
         setData(mockDashboard);
         setUsingMock(true);
       });
+    fetchDecisions(requireBranchId(), 'OPEN')
+      .then((decisions) => setTopDecisions(decisions.slice(0, 3)))
+      .catch(() => setTopDecisions(null));
     fetchRecommendations(requireBranchId(), 'OPEN')
       .then((recs) => setOpenRecsTotal(recs.reduce((sum, r) => sum + r.expectedValue, 0)))
       .catch(() => setOpenRecsTotal(null));
@@ -189,6 +199,36 @@ export function Dashboard() {
             total={data.monthlyImpactLedger.totalFinancialImpact}
           />
           <PerformanceTrendChart data={data.monthlyImpactLedger.performanceTrend} />
+        </div>
+
+        <div className="grid-row grid-2">
+          <TopItemsCard
+            topProfitabilityItems={data.executiveActionCenter.topProfitabilityItems}
+            topAccumulatedCostItems={data.executiveActionCenter.topAccumulatedCostItems}
+          />
+          <AlertsPanel alerts={data.executiveActionCenter.alerts} />
+        </div>
+
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="page-header" style={{ marginBottom: 14 }}>
+            <div className="card-title" style={{ marginBottom: 0 }}>التوصيات الذكية اليوم</div>
+            <Link to="/decisions" style={{ color: 'var(--accent-blue)', fontSize: 13, textDecoration: 'none' }}>
+              عرض كل التوصيات ←
+            </Link>
+          </div>
+          {topDecisions === null && <p style={{ color: 'var(--text-secondary)' }}>جاري التحميل...</p>}
+          {topDecisions !== null && topDecisions.length === 0 && (
+            <p style={{ color: 'var(--text-secondary)' }}>لا توجد قرارات شراء تحتاج مراجعة حاليًا.</p>
+          )}
+          {topDecisions?.map((d) => (
+            <div className="recommendation-row" key={d.id}>
+              <span className={`priority-tag ${d.category === 'RISK' ? 'priority-HIGH' : 'priority-LOW'}`}>
+                {d.category === 'RISK' ? 'خطر' : 'فرصة'}
+              </span>
+              <span className="rec-title">{d.itemName} — {d.reasonSummary.split('.')[0]}.</span>
+              <span className="rec-value">{Math.round(d.financialImpact).toLocaleString('ar')} شيكل</span>
+            </div>
+          ))}
         </div>
 
         <div className="grid-metrics">

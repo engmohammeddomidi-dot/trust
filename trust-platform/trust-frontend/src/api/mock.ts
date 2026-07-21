@@ -79,4 +79,21 @@ export const mockDashboard: DashboardResponse = {
       { date: '2026-07-21', score: 82 },
     ],
   },
+  executiveActionCenter: {
+    topProfitabilityItems: [
+      { itemName: 'زيت دوار الشمس', value: 3245 },
+      { itemName: 'أرز بسمتي', value: 2870 },
+      { itemName: 'سكر أبيض', value: 2310 },
+    ],
+    topAccumulatedCostItems: [
+      { itemName: 'مناديل ورقية', value: 1824 },
+      { itemName: 'مشروبات غازية', value: 1560 },
+      { itemName: 'بسكويت شوكولاتة', value: 1245 },
+    ],
+    alerts: [
+      { type: 'GROUP_ORDER', label: 'طلبات شراء جماعي متاحة', count: 5 },
+      { type: 'LOW_STOCK', label: 'تنبيه مخزون منخفض', count: 7 },
+      { type: 'SLOW_MOVING', label: 'أصناف بطيئة الحركة', count: 12 },
+    ],
+  },
 };

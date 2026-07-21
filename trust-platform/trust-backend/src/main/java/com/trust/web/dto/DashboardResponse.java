@@ -20,7 +20,8 @@ public record DashboardResponse(
         List<ItemDto> itemsNeedingAttention,
         DailyPerformanceSummaryDto dailyPerformanceSummary,
         PerformanceImpactSummaryDto performanceImpactSummary,
-        MonthlyImpactLedgerDto monthlyImpactLedger
+        MonthlyImpactLedgerDto monthlyImpactLedger,
+        ExecutiveActionCenterDto executiveActionCenter
 ) {
     public record SalesPoint(String date, double sales) {}
 }
