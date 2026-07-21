@@ -25,6 +25,13 @@ public class Decision {
     public enum Type { PURCHASE_ORDER }
     public enum Status { OPEN, APPROVED, MODIFIED, DEFERRED, DISMISSED }
 
+    /**
+     * تصنيف حقيقي مشتق من إشارات المحرك (وليس افتراضيًا): RISK إذا كان المخزون لن يصمد
+     * حتى وصول التوريد (نفاد فعلي محتمل)، OPPORTUNITY إذا كان القرار استباقيًا ولا يزال
+     * هناك هامش أمان - يطابق تصنيفَي "الفرص/المخاطر" من رؤية PM.
+     */
+    public enum Category { RISK, OPPORTUNITY }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -48,6 +55,10 @@ public class Decision {
 
     @Enumerated(EnumType.STRING)
     private Status status = Status.OPEN;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Category category;
 
     @Column(nullable = false)
     private double suggestedQuantity;

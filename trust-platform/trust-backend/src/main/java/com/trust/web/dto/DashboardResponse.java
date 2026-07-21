@@ -18,7 +18,8 @@ public record DashboardResponse(
         Map<String, Double> inventoryBreakdown, // FAST/MEDIUM/SLOW/STAGNANT -> value
         Map<String, Double> liquidityBreakdown, // AVAILABLE/RECEIVABLES/PAYABLES
         List<ItemDto> itemsNeedingAttention,
-        DailyPerformanceSummaryDto dailyPerformanceSummary
+        DailyPerformanceSummaryDto dailyPerformanceSummary,
+        PerformanceImpactSummaryDto performanceImpactSummary
 ) {
     public record SalesPoint(String date, double sales) {}
 }

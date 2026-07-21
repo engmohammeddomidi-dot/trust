@@ -58,4 +58,10 @@ export const mockDashboard: DashboardResponse = {
     purchaseVolumeNeeded: 54230,
     clearanceVolumeNeeded: 32480,
   },
+  performanceImpactSummary: {
+    performanceScore: 82,
+    risksResolvedCount: 14,
+    opportunitiesResolvedCount: 27,
+    recommendationsCompletionRatePercent: 74,
+  },
 };

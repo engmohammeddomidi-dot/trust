@@ -148,6 +148,37 @@ export function Dashboard() {
           />
         </div>
 
+        <div className="grid-row grid-2">
+          <div className="card">
+            <div className="card-title">مؤشر الأداء والأثر الفعلي</div>
+            {data.performanceImpactSummary.performanceScore !== null ? (
+              <HealthGauge score={data.performanceImpactSummary.performanceScore} label={turnoverLabel(data.performanceImpactSummary.performanceScore)} />
+            ) : (
+              <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-secondary)' }}>—</div>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>لا توجد طلبيات مستلمة بعد لحساب المؤشر</p>
+              </div>
+            )}
+          </div>
+          <div className="card">
+            <div className="card-title">إنجازات هذا الفرع</div>
+            <div className="grid-row grid-3" style={{ marginBottom: 0 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-red)' }}>{data.performanceImpactSummary.risksResolvedCount}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>عدد المخاطر التي تم معالجتها</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-green)' }}>{data.performanceImpactSummary.opportunitiesResolvedCount}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>عدد الفرص التي تم معالجتها</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent-blue)' }}>{data.performanceImpactSummary.recommendationsCompletionRatePercent}%</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>إجمالي التوصيات المنجزة</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid-metrics">
           <MetricCard label="المبيعات اليوم" value={data.salesToday.toLocaleString('ar')} unit="شيكل"
             deltaLabel="عن أمس" deltaValue={data.salesChangePercent} icon="🛒" iconBg="var(--accent-green-bg)" />

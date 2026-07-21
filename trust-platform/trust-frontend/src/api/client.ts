@@ -103,6 +103,13 @@ export interface DailyPerformanceSummaryDto {
   clearanceVolumeNeeded: number;
 }
 
+export interface PerformanceImpactSummaryDto {
+  performanceScore: number | null;
+  risksResolvedCount: number;
+  opportunitiesResolvedCount: number;
+  recommendationsCompletionRatePercent: number;
+}
+
 export interface DashboardResponse {
   salesToday: number;
   salesChangePercent: number;
@@ -119,6 +126,7 @@ export interface DashboardResponse {
   liquidityBreakdown: Record<string, number>;
   itemsNeedingAttention: ItemDto[];
   dailyPerformanceSummary: DailyPerformanceSummaryDto;
+  performanceImpactSummary: PerformanceImpactSummaryDto;
 }
 
 export async function fetchDashboard(params: {
@@ -327,6 +335,7 @@ export interface DecisionDto {
   supplierId: number | null;
   supplierName: string | null;
   type: 'PURCHASE_ORDER';
+  category: 'RISK' | 'OPPORTUNITY';
   status: 'OPEN' | 'APPROVED' | 'MODIFIED' | 'DEFERRED' | 'DISMISSED';
   suggestedQuantity: number;
   approvedQuantity: number | null;

@@ -9,6 +9,7 @@ public record DecisionDto(
         Long supplierId,
         String supplierName,
         String type,
+        String category,
         String status,
         double suggestedQuantity,
         Double approvedQuantity,

@@ -150,12 +150,17 @@ public class PurchaseDecisionEngineService {
                 suggestedQuantity, targetCoverageDays, liquidityCapped, liquidityDataAvailable, supplierBelowPolicy,
                 policy, effectiveLiquidityRatio, extraSafetyDaysFromGoal);
 
+        // خطر: المخزون لن يصمد حتى مدة توريد المورد نفسها (احتمال نفاد حقيقي قبل وصول أي طلبية جديدة).
+        // فرصة: القرار استباقي وما زال هناك هامش أمان - تحسين استباقي وليس إطفاء حريق.
+        Decision.Category category = daysCoverage <= leadTimeDays ? Decision.Category.RISK : Decision.Category.OPPORTUNITY;
+
         if (existing != null) {
             existing.setSupplier(supplier);
             existing.setSuggestedQuantity(suggestedQuantity);
             existing.setReasonSummary(reason);
             existing.setConfidenceScore(confidence);
             existing.setFinancialImpact(financialImpact);
+            existing.setCategory(category);
             return existing;
         }
 
@@ -165,6 +170,7 @@ public class PurchaseDecisionEngineService {
         decision.setSupplier(supplier);
         decision.setType(Decision.Type.PURCHASE_ORDER);
         decision.setStatus(Decision.Status.OPEN);
+        decision.setCategory(category);
         decision.setSuggestedQuantity(suggestedQuantity);
         decision.setReasonSummary(reason);
         decision.setConfidenceScore(confidence);

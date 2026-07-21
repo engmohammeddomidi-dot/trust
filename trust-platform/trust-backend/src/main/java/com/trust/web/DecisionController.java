@@ -4,12 +4,11 @@ import com.trust.config.AuthenticatedUser;
 import com.trust.config.TenantAccessGuard;
 import com.trust.domain.Branch;
 import com.trust.domain.Decision;
-import com.trust.domain.Purchase;
 import com.trust.domain.Supplier;
 import com.trust.repository.DecisionRepository;
-import com.trust.repository.PurchaseRepository;
 import com.trust.repository.SupplierRepository;
 import com.trust.service.DecisionActionService;
+import com.trust.service.DecisionAnalyticsService;
 import com.trust.service.PurchaseDecisionEngineService;
 import com.trust.web.dto.DecisionDto;
 import com.trust.web.dto.DecisionModifyRequest;
@@ -27,19 +26,20 @@ public class DecisionController {
 
     private final DecisionRepository decisionRepository;
     private final SupplierRepository supplierRepository;
-    private final PurchaseRepository purchaseRepository;
     private final PurchaseDecisionEngineService engineService;
     private final DecisionActionService actionService;
+    private final DecisionAnalyticsService analyticsService;
     private final TenantAccessGuard accessGuard;
 
     public DecisionController(DecisionRepository decisionRepository, SupplierRepository supplierRepository,
-                               PurchaseRepository purchaseRepository, PurchaseDecisionEngineService engineService,
-                               DecisionActionService actionService, TenantAccessGuard accessGuard) {
+                               PurchaseDecisionEngineService engineService,
+                               DecisionActionService actionService, DecisionAnalyticsService analyticsService,
+                               TenantAccessGuard accessGuard) {
         this.decisionRepository = decisionRepository;
         this.supplierRepository = supplierRepository;
-        this.purchaseRepository = purchaseRepository;
         this.engineService = engineService;
         this.actionService = actionService;
+        this.analyticsService = analyticsService;
         this.accessGuard = accessGuard;
     }
 
@@ -98,12 +98,7 @@ public class DecisionController {
     @GetMapping("/quality-score")
     public DecisionQualityScoreDto qualityScore(@RequestParam Long branchId, @AuthenticationPrincipal AuthenticatedUser principal) {
         accessGuard.requireBranch(principal, branchId);
-        List<Purchase> issuedFromDecisions = purchaseRepository.findByBranchIdAndDecisionIsNotNull(branchId);
-        long received = issuedFromDecisions.stream().filter(p -> p.getStatus() == Purchase.Status.RECEIVED).count();
-        long withDiscrepancy = issuedFromDecisions.stream()
-                .filter(p -> p.getStatus() == Purchase.Status.RECEIVED && p.isHasDiscrepancy()).count();
-        Double qualityScore = received > 0 ? Math.round((1 - (double) withDiscrepancy / received) * 1000) / 10.0 : null;
-        return new DecisionQualityScoreDto(issuedFromDecisions.size(), (int) received, (int) withDiscrepancy, qualityScore);
+        return analyticsService.qualityScore(List.of(branchId));
     }
 
     private Decision requireOwnedDecision(Long id, AuthenticatedUser principal) {
@@ -116,7 +111,7 @@ public class DecisionController {
         Supplier supplier = d.getSupplier();
         return new DecisionDto(d.getId(), d.getItem().getId(), d.getItem().getName(),
                 supplier != null ? supplier.getId() : null, supplier != null ? supplier.getName() : null,
-                d.getType().name(), d.getStatus().name(), d.getSuggestedQuantity(), d.getApprovedQuantity(),
+                d.getType().name(), d.getCategory().name(), d.getStatus().name(), d.getSuggestedQuantity(), d.getApprovedQuantity(),
                 d.getReasonSummary(), d.getConfidenceScore(), d.getFinancialImpact(), d.getCreatedAt(), d.getResolvedAt(),
                 d.getActualOutcome());
     }

@@ -22,12 +22,14 @@ public class DashboardService {
     private final ItemService itemService;
     private final DecisionRepository decisionRepository;
     private final GroupOrderParticipantRepository groupOrderParticipantRepository;
+    private final DecisionAnalyticsService decisionAnalyticsService;
 
     public DashboardService(BranchRepository branchRepository, DailyEntryRepository dailyEntryRepository,
                              ItemRepository itemRepository, RecommendationRepository recommendationRepository,
                              HealthScoreService healthScoreService, ItemService itemService,
                              DecisionRepository decisionRepository,
-                             GroupOrderParticipantRepository groupOrderParticipantRepository) {
+                             GroupOrderParticipantRepository groupOrderParticipantRepository,
+                             DecisionAnalyticsService decisionAnalyticsService) {
         this.branchRepository = branchRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.itemRepository = itemRepository;
@@ -36,6 +38,7 @@ public class DashboardService {
         this.itemService = itemService;
         this.decisionRepository = decisionRepository;
         this.groupOrderParticipantRepository = groupOrderParticipantRepository;
+        this.decisionAnalyticsService = decisionAnalyticsService;
     }
 
     /**
@@ -94,10 +97,11 @@ public class DashboardService {
 
         DailyPerformanceSummaryDto dailyPerformanceSummary =
                 buildDailyPerformanceSummary(organizationId, branchIds, items, healthScore);
+        PerformanceImpactSummaryDto performanceImpactSummary = decisionAnalyticsService.performanceImpactSummary(branchIds);
 
         return new DashboardResponse(salesToday, salesChange, totalProfit, profitChange, marginPercent, marginChange,
                 availableLiquidity, liquidityChange, healthScore, salesTrend, topRecs,
-                inventoryBreakdown, liquidityBreakdown, attention, dailyPerformanceSummary);
+                inventoryBreakdown, liquidityBreakdown, attention, dailyPerformanceSummary, performanceImpactSummary);
     }
 
     /** ملخص الأداء اليومي (رؤية PM: الفرص/المخاطر مباشرة على الشاشة الرئيسية بدل أرقام مجردة) */
