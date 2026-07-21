@@ -20,6 +20,7 @@ import { AdminOrganizationsPage } from './pages/admin/AdminOrganizationsPage';
 import { AdminStagnantItemsPage } from './pages/admin/AdminStagnantItemsPage';
 import { AdminGroupOrdersPage } from './pages/admin/AdminGroupOrdersPage';
 import { AdminBenchmarksPage } from './pages/admin/AdminBenchmarksPage';
+import { SupplierOverviewPage } from './pages/supplier/SupplierOverviewPage';
 import './styles/theme.css';
 
 export default function App() {
@@ -50,6 +51,10 @@ export default function App() {
         <Route path="/admin/stagnant-items" element={<AdminStagnantItemsPage />} />
         <Route path="/admin/group-orders" element={<AdminGroupOrdersPage />} />
         <Route path="/admin/benchmarks" element={<AdminBenchmarksPage />} />
+      </Route>
+
+      <Route element={<RequireAuth requireSupplier />}>
+        <Route path="/supplier" element={<SupplierOverviewPage />} />
       </Route>
     </Routes>
   );
