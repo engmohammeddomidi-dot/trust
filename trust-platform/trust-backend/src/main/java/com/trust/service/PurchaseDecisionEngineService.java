@@ -46,17 +46,23 @@ public class PurchaseDecisionEngineService {
     private final DecisionRepository decisionRepository;
     private final PolicyService policyService;
     private final GoalService goalService;
+    private final DecisionExplanationBuilder explanationBuilder;
+    private final DecisionAlternativeBuilder alternativeBuilder;
 
     public PurchaseDecisionEngineService(ItemRepository itemRepository,
                                           DailyEntryRepository dailyEntryRepository,
                                           DecisionRepository decisionRepository,
                                           PolicyService policyService,
-                                          GoalService goalService) {
+                                          GoalService goalService,
+                                          DecisionExplanationBuilder explanationBuilder,
+                                          DecisionAlternativeBuilder alternativeBuilder) {
         this.itemRepository = itemRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.decisionRepository = decisionRepository;
         this.policyService = policyService;
         this.goalService = goalService;
+        this.explanationBuilder = explanationBuilder;
+        this.alternativeBuilder = alternativeBuilder;
     }
 
     public List<Decision> generateForBranch(Branch branch) {
@@ -80,10 +86,16 @@ public class PurchaseDecisionEngineService {
             }
         }
 
+        // تقدير مثبَّت على تكلفة البضاعة المباعة الفعلية بدل نسبة من المخزون - وإلا
+        // بقيت أيام التغطية ثابتة مهما تغيّر المخزون
+        double branchDailyCogs = latestEntry.map(DailyEntry::getTotalCogs).orElse(0.0);
+        Map<Long, Double> dailySalesByItem = SalesEstimator.forBranch(items, branchDailyCogs);
+
         List<Decision> results = new ArrayList<>();
         for (Item item : items) {
             Decision decision = evaluateItem(branch, item, latestEntry, policy, extraSafetyDaysFromGoal,
-                    liquidityRatioMultiplier, existingByItemId.get(item.getId()));
+                    liquidityRatioMultiplier, existingByItemId.get(item.getId()),
+                    dailySalesByItem.getOrDefault(item.getId(), 0.0));
             if (decision != null) {
                 results.add(decision);
             }
@@ -92,12 +104,12 @@ public class PurchaseDecisionEngineService {
     }
 
     private Decision evaluateItem(Branch branch, Item item, Optional<DailyEntry> latestEntry, Policy policy,
-                                   int extraSafetyDaysFromGoal, double liquidityRatioMultiplier, Decision existing) {
+                                   int extraSafetyDaysFromGoal, double liquidityRatioMultiplier, Decision existing,
+                                   double dailyAvgSales) {
         if (item.getMovementStatus() == Item.MovementStatus.STAGNANT) {
             return null; // لا يُشترى صنف راكد أصلاً - السؤال "هل يجب أن أشتري أصلاً؟" إجابته لا هنا
         }
 
-        double dailyAvgSales = SalesEstimator.estimateDailySales(item);
         if (dailyAvgSales <= 0) {
             return null;
         }
@@ -154,6 +166,11 @@ public class PurchaseDecisionEngineService {
         // فرصة: القرار استباقي وما زال هناك هامش أمان - تحسين استباقي وليس إطفاء حريق.
         Decision.Category category = daysCoverage <= leadTimeDays ? Decision.Category.RISK : Decision.Category.OPPORTUNITY;
 
+        double availableLiquidity = liquidityDataAvailable ? latestEntry.get().getAvailableLiquidity() : 0;
+        String alternativesJson = serialiseAlternatives(alternativeBuilder.build(
+                suggestedQuantity, item.getCostPrice(), availableLiquidity, effectiveLiquidityRatio,
+                dailyAvgSales, reorderThresholdDays));
+
         if (existing != null) {
             existing.setSupplier(supplier);
             existing.setSuggestedQuantity(suggestedQuantity);
@@ -161,6 +178,10 @@ public class PurchaseDecisionEngineService {
             existing.setConfidenceScore(confidence);
             existing.setFinancialImpact(financialImpact);
             existing.setCategory(category);
+            existing.setAlternativesJson(alternativesJson);
+            explanationBuilder.applyTo(existing, financialImpact, stockoutRiskDays, liquidityCapped,
+                    supplierBelowPolicy, effectiveLiquidityRatio,
+                    supplier != null ? supplier.getName() : null, supplier != null, liquidityDataAvailable);
             return existing;
         }
 
@@ -175,7 +196,23 @@ public class PurchaseDecisionEngineService {
         decision.setReasonSummary(reason);
         decision.setConfidenceScore(confidence);
         decision.setFinancialImpact(financialImpact);
+        decision.setAlternativesJson(alternativesJson);
+        explanationBuilder.applyTo(decision, financialImpact, stockoutRiskDays, liquidityCapped,
+                supplierBelowPolicy, effectiveLiquidityRatio,
+                supplier != null ? supplier.getName() : null, supplier != null, liquidityDataAvailable);
         return decision;
+    }
+
+    /**
+     * البدائل تُخزَّن كـ JSON على القرار بدل جدول منفصل: لا يُستعلَم عنها إلا مع القرار
+     * نفسه، ولا تُصفّى ولا تُجمَّع - فجدول مستقل سيضيف كلفة بلا فائدة.
+     */
+    private String serialiseAlternatives(java.util.List<DecisionAlternativeBuilder.Alternative> alternatives) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(alternatives);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            return null; // البدائل تحسين للعرض - فشل تسلسلها لا يُسقط توليد القرار
+        }
     }
 
     private String buildReason(Item item, Supplier supplier, int leadTimeDays, int safetyStockDays,

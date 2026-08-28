@@ -75,7 +75,7 @@ export function PurchasesPage() {
 
         {openOrders !== null && openOrders.length > 0 && (
           <div className="card" style={{ marginBottom: 14 }}>
-            <div className="card-title">طلبات شراء جماعي متاحة للانضمام 🤝</div>
+            <div className="card-title">طلبات شراء جماعي متاحة للانضمام</div>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
               انضم بكميتك لتجميع طلب أكبر — كلما زادت الكمية المجمّعة زادت فرصة تفاوض المنصة على سعر جملة أفضل.
             </p>

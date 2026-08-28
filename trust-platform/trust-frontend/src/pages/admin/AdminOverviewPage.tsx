@@ -48,13 +48,13 @@ export function AdminOverviewPage() {
         ) : (
           <>
             <div className="grid-row grid-4" style={{ marginBottom: 14 }}>
-              <KpiCard icon="🏢" iconBg="var(--accent-blue)" label="عدد المؤسسات النشطة"
+              <KpiCard icon="organizations" iconBg="var(--accent-blue)" label="عدد المؤسسات النشطة"
                 value={String(overview.totalOrganizations)} caption="على مستوى المنصة" />
-              <KpiCard icon="🏬" iconBg="var(--accent-blue)" label="إجمالي الفروع"
+              <KpiCard icon="store" iconBg="var(--accent-blue)" label="إجمالي الفروع"
                 value={String(overview.totalBranches)} caption="على مستوى المنصة" />
-              <KpiCard icon="💚" iconBg="var(--accent-green)" label="متوسط صحة الأعمال"
+              <KpiCard icon="health" iconBg="var(--accent-green)" label="متوسط صحة الأعمال"
                 value={String(overview.avgHealthScore)} unit="/100" caption="آخر 30 يوم" />
-              <KpiCard icon="📈" iconBg="var(--accent-purple)" label="مبيعات المنصة اليوم"
+              <KpiCard icon="opportunity" iconBg="var(--accent-purple)" label="مبيعات المنصة اليوم"
                 value={Math.round(overview.totalSalesToday).toLocaleString('ar')} unit="شيكل" caption="جميع المؤسسات" />
             </div>
 

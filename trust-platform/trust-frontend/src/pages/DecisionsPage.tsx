@@ -5,7 +5,9 @@ import {
   fetchSuppliers, modifyDecision, receivePurchase, regenerateDecisions,
   type DecisionDto, type DecisionQualityScoreDto, type PurchaseDto, type SupplierDto,
 } from '../api/client';
+import { DecisionExplanation } from '../components/DecisionExplanation';
 import { requireBranchId, requireOrganizationId } from '../auth/session';
+import { Icon } from '../components/Icon';
 
 type Tab = 'OPEN' | 'IN_PROGRESS' | 'HISTORY';
 
@@ -168,6 +170,24 @@ export function DecisionsPage() {
     }
   }
 
+  /**
+   * اعتماد بديل يمر بنفس مسار الاعتماد/التعديل، فينشئ أمر شراء حقيقيًا. لو حُدِّثت
+   * حالة القرار مباشرةً هنا لكان "اعتماد البديل" يقلب حالة ولا يطلب شيئًا فعلًا.
+   */
+  async function chooseAlternative(d: DecisionDto, quantity: number) {
+    setBusyId(d.id);
+    try {
+      if (Math.abs(quantity - d.suggestedQuantity) < 0.001) {
+        await approveDecision(d.id);
+      } else {
+        await modifyDecision(d.id, quantity, d.supplierId ?? undefined);
+      }
+      load();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function handleAction(action: 'approve' | 'defer' | 'dismiss', id: number) {
     setBusyId(id);
     try {
@@ -200,7 +220,7 @@ export function DecisionsPage() {
               </span>
             )}
             <button className="btn-primary" onClick={handleRegenerate} disabled={regenerating}>
-              {regenerating ? 'جارِ التحليل...' : '🔄 تحديث القرارات'}
+              {regenerating ? 'جارِ التحليل...' : 'تحديث القرارات'}
             </button>
           </div>
         </div>
@@ -251,12 +271,32 @@ export function DecisionsPage() {
 
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.7 }}>{d.reasonSummary}</p>
 
+              <DecisionExplanation
+                decision={d}
+                disabled={busyId === d.id}
+                onChooseAlternative={tab === 'OPEN' && modifyingId !== d.id
+                  ? (q) => chooseAlternative(d, q)
+                  : undefined}
+              />
+
               {tab === 'OPEN' && modifyingId !== d.id && (
-                <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                  <button className="rec-action rec-action-apply" title="اعتماد" disabled={busyId === d.id} onClick={() => handleAction('approve', d.id)}>✓ اعتماد</button>
-                  <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: 12 }} disabled={busyId === d.id} onClick={() => setModifyingId(d.id)}>✏ تعديل</button>
-                  <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: 12 }} disabled={busyId === d.id} onClick={() => handleAction('defer', d.id)}>⏸ تأجيل</button>
-                  <button className="rec-action rec-action-dismiss" title="تجاهل" disabled={busyId === d.id} onClick={() => handleAction('dismiss', d.id)}>✕ تجاهل</button>
+                <div className="decision-actions">
+                  <button className="btn-primary" disabled={busyId === d.id}
+                    onClick={() => handleAction('approve', d.id)}>
+                    <Icon name="approve" /> اعتماد
+                  </button>
+                  <button className="btn-secondary" disabled={busyId === d.id}
+                    onClick={() => setModifyingId(d.id)}>
+                    <Icon name="modify" /> تعديل
+                  </button>
+                  <button className="btn-secondary" disabled={busyId === d.id}
+                    onClick={() => handleAction('defer', d.id)}>
+                    <Icon name="defer" /> تأجيل
+                  </button>
+                  <button className="btn-ghost decision-actions__dismiss" disabled={busyId === d.id}
+                    onClick={() => handleAction('dismiss', d.id)}>
+                    <Icon name="dismiss" /> تجاهل
+                  </button>
                 </div>
               )}
 
@@ -276,7 +316,7 @@ export function DecisionsPage() {
                   </span>
                   {purchase.status === 'SENT' && receivingPurchaseId !== purchase.id && (
                     <button className="btn-primary" style={{ padding: '6px 14px', fontSize: 12, marginRight: 10 }} onClick={() => setReceivingPurchaseId(purchase.id)}>
-                      📦 تسجيل الاستلام
+                       تسجيل الاستلام
                     </button>
                   )}
                   {purchase.status === 'SENT' && receivingPurchaseId === purchase.id && (

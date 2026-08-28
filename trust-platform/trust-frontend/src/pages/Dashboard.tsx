@@ -9,6 +9,8 @@ import { TopItemsCard } from '../components/TopItemsCard';
 import { AlertsPanel } from '../components/AlertsPanel';
 import { HealthGauge } from '../components/HealthGauge';
 import { HealthRadar } from '../components/HealthRadar';
+import { BhiBreakdown } from '../components/BhiBreakdown';
+import { TodaysOpportunities } from '../components/TodaysOpportunities';
 import { SalesChart } from '../components/SalesChart';
 import { RecommendationsList } from '../components/RecommendationsList';
 import { DonutBreakdown } from '../components/DonutBreakdown';
@@ -21,6 +23,7 @@ import {
 } from '../api/client';
 import { mockDashboard } from '../api/mock';
 import { getSession, requireBranchId, requireOrganizationId } from '../auth/session';
+import { Icon } from '../components/Icon';
 
 const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
@@ -98,9 +101,9 @@ export function Dashboard() {
         <div className="topbar">
           <div style={{ display: 'flex', gap: 10 }}>
             <div className="pill">
-              📅 {todayLabel()}
+               {todayLabel()}
             </div>
-            <div className="pill">🏬 {session?.organizationName ?? 'جميع الفروع'}</div>
+            <div className="pill">{session?.organizationName ?? 'جميع الفروع'}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button className="btn-primary" onClick={() => setShowEntryModal(true)}>+ إدخال بيانات اليوم</button>
@@ -114,7 +117,7 @@ export function Dashboard() {
                 width: 38, height: 38, borderRadius: '50%',
                 background: 'var(--accent-purple-bg)', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', fontSize: 18,
-              }}>👤</div>
+              }}><Icon name="user" /></div>
             </div>
           </div>
         </div>
@@ -124,35 +127,39 @@ export function Dashboard() {
             marginBottom: 14, fontSize: 12, color: 'var(--accent-amber)',
             background: 'var(--accent-amber-bg)', padding: '8px 14px', borderRadius: 8,
           }}>
-            ⚠️ يتم عرض بيانات تجريبية — تعذّر الاتصال بالـ backend على http://localhost:8080. شغّل الـ backend لعرض بيانات حقيقية.
+             يتم عرض بيانات تجريبية — تعذّر الاتصال بالـ backend على http://localhost:8080. شغّل الـ backend لعرض بيانات حقيقية.
           </div>
         )}
+
+        <div style={{ marginBottom: 14 }}>
+          <TodaysOpportunities signals={data.executiveActionCenter.todaysOpportunities} />
+        </div>
 
         <div className="section-title">ملخص الأداء اليومي</div>
         <div className="grid-row grid-4">
           <KpiCard
-            icon="%" iconBg="var(--accent-green-bg)"
+            icon="margin" iconBg="var(--accent-green)"
             label="معدل التوفير من فرص الشراء الجماعي"
             value={`${data.dailyPerformanceSummary.groupBuySavingsRatePercent.toFixed(1)}%`}
             caption={`↑ ${Math.round(data.dailyPerformanceSummary.groupBuySavingsAmountThisMonth).toLocaleString('ar')} شيكل هذا الشهر`}
             captionColor="var(--accent-green)"
           />
           <KpiCard
-            icon="🔄" iconBg="var(--accent-blue-bg)"
+            icon="refresh" iconBg="var(--accent-blue)"
             label="معدل تدوير مخاطر ركود الأصناف"
             value={`${Math.round(data.dailyPerformanceSummary.inventoryTurnoverRatePercent)}%`}
             caption={turnoverLabel(data.dailyPerformanceSummary.inventoryTurnoverRatePercent)}
             captionColor="var(--accent-blue)"
           />
           <KpiCard
-            icon="🛒" iconBg="var(--accent-purple-bg)"
+            icon="purchases" iconBg="var(--accent-purple)"
             label="حجم المشتريات المطلوب للأصناف التي يتطلب توفرها"
             value={Math.round(data.dailyPerformanceSummary.purchaseVolumeNeeded).toLocaleString('ar')}
             unit="شيكل"
             caption="بتكلفة شراء أقل"
           />
           <KpiCard
-            icon="🏷️" iconBg="var(--accent-amber-bg)"
+            icon="pricing" iconBg="var(--accent-amber)"
             label="حجم المبيعات للأصناف المطلوب التخلص منها"
             value={Math.round(data.dailyPerformanceSummary.clearanceVolumeNeeded).toLocaleString('ar')}
             unit="شيكل"
@@ -233,15 +240,15 @@ export function Dashboard() {
 
         <div className="grid-metrics">
           <MetricCard label="المبيعات اليوم" value={data.salesToday.toLocaleString('ar')} unit="شيكل"
-            deltaLabel="عن أمس" deltaValue={data.salesChangePercent} icon="🛒" iconBg="var(--accent-green-bg)" />
+            deltaLabel="عن أمس" deltaValue={data.salesChangePercent} icon="purchases" iconBg="var(--accent-green)" />
           <MetricCard label="إجمالي الربح" value={data.totalProfit.toLocaleString('ar')} unit="شيكل"
-            deltaLabel="عن أمس" deltaValue={data.profitChangePercent} icon="📊" iconBg="var(--accent-blue-bg)" />
+            deltaLabel="عن أمس" deltaValue={data.profitChangePercent} icon="chart" iconBg="var(--accent-blue)" />
           <MetricCard label="هامش الربح" value={`${data.marginPercent.toFixed(1)}%`}
-            deltaLabel="عن أمس" deltaValue={data.marginChangePercent} icon="%" iconBg="var(--accent-purple-bg)" />
+            deltaLabel="عن أمس" deltaValue={data.marginChangePercent} icon="margin" iconBg="var(--accent-purple)" />
           <MetricCard label="السيولة المتاحة" value={data.availableLiquidity.toLocaleString('ar')} unit="شيكل"
-            deltaLabel="عن أمس" deltaValue={data.liquidityChangePercent} icon="💼" iconBg="var(--accent-amber-bg)" />
+            deltaLabel="عن أمس" deltaValue={data.liquidityChangePercent} icon="wallet" iconBg="var(--accent-amber)" />
           <div className="card metric-card">
-            <div className="icon" style={{ background: 'var(--accent-green-bg)' }}>📶</div>
+            <div className="icon" style={{ background: 'var(--accent-green-bg)' }}><Icon name="health" /></div>
             <div className="label">صحة الأعمال</div>
             <HealthGauge score={data.healthScore.totalScore} label={data.healthScore.label} />
           </div>
@@ -252,6 +259,8 @@ export function Dashboard() {
           <SalesChart data={data.salesTrend} />
           <RecommendationsList items={data.topRecommendations} onChanged={loadDashboard} />
         </div>
+
+        <BhiBreakdown bhi={data.healthScore} />
 
         <div className="grid-row grid-3">
           <DonutBreakdown
@@ -264,7 +273,7 @@ export function Dashboard() {
               { label: 'راكد', value: data.inventoryBreakdown.STAGNANT ?? 0, color: 'var(--accent-red)' },
             ]}
             footerNote={{
-              text: `⚠️ مخزون راكد بحاجة للتصرف: ${Math.round(data.inventoryBreakdown.STAGNANT ?? 0).toLocaleString('ar')} شيكل`,
+              text: `️ مخزون راكد بحاجة للتصرف: ${Math.round(data.inventoryBreakdown.STAGNANT ?? 0).toLocaleString('ar')} شيكل`,
               tone: 'warn',
             }}
           />
@@ -277,7 +286,7 @@ export function Dashboard() {
               { label: 'الالتزامات الحالة', value: data.liquidityBreakdown.PAYABLES ?? 0, color: 'var(--accent-red)' },
             ]}
             footerNote={openRecsTotal !== null && openRecsTotal > 0
-              ? { text: `📈 تحرير ${Math.round(openRecsTotal).toLocaleString('ar')} شيكل متوقع من تنفيذ التوصيات المفتوحة`, tone: 'good' }
+              ? { text: ` تحرير ${Math.round(openRecsTotal).toLocaleString('ar')} شيكل متوقع من تنفيذ التوصيات المفتوحة`, tone: 'good' }
               : undefined}
           />
           <AttentionTable items={data.itemsNeedingAttention} />
@@ -290,11 +299,11 @@ export function Dashboard() {
           return (
             <div className="footer-banner">
               <span style={{ fontSize: 13 }}>
-                🤖 إذا نفذت أهم {highPriorityRecs.length} توصيات عالية الأولوية، ستحقق توفير + ربح إضافي قدره{' '}
+                 إذا نفذت أهم {highPriorityRecs.length} توصيات عالية الأولوية، ستحقق توفير + ربح إضافي قدره{' '}
                 <strong style={{ color: 'var(--accent-green)' }}>{Math.round(potentialValue).toLocaleString('ar')} شيكل</strong> خلال 30 يوم
               </span>
               <button className="btn-primary" onClick={applyTopRecommendations} disabled={applyingTop}>
-                {applyingTop ? 'جارِ التطبيق...' : '⚡ تطبيق التوصيات الآن'}
+                {applyingTop ? 'جارِ التطبيق...' : 'تطبيق التوصيات الآن'}
               </button>
             </div>
           );

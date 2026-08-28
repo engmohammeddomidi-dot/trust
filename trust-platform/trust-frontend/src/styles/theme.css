@@ -1,58 +1,109 @@
 :root {
-  /* رموز مشتركة بين الوضعين الداكن والفاتح */
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --font-main: 'IBM Plex Sans Arabic', 'Tajawal', sans-serif;
+  /* ===========================================================================
+     نظام الرموز (Design tokens)
+     الاتجاه: حبر على ورق، بلون مؤسسي بترولي. الأزرق المؤسسي هو الخيار الافتراضي
+     في كل لوحات التحكم، والبترولي يميّز المنتج ويترك الأخضر والأحمر دلالتين
+     خالصتين: فرصة وخطر. لا يُستخدم لون لغرض جمالي بحت.
+     =========================================================================== */
 
-  /* بلاطات KPI ملوّنة (من تصاميم اللوحات الجديدة) - نفس الدرجات في الوضعين لأنها كتل لونية مشبعة قائمة بذاتها */
-  --tile-green: linear-gradient(135deg, #34d399, #16a34a);
-  --tile-blue: linear-gradient(135deg, #60a5fa, #2563eb);
-  --tile-purple: linear-gradient(135deg, #a78bfa, #7c3aed);
-  --tile-orange: linear-gradient(135deg, #fb923c, #ea580c);
-  --tile-teal: linear-gradient(135deg, #2dd4bf, #0d9488);
+  /* الخط: IBM Plex Sans Arabic للنص، ونسخته اللاتينية للأرقام بأشكال جدولية
+     حتى تصطف أعمدة المبالغ - وهو فرق ملموس في منتج بيانات */
+  --font-main: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-numeric: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+
+  /* سلّم مسافات من 4 بكسل - يمنع الانحراف بين الصفحات */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* الحركة: مدة واحدة ومنحنى واحد لكل الواجهة */
+  --ease: cubic-bezier(0.2, 0, 0.1, 1);
+  --dur: 160ms;
+
+  --sidebar-w: 232px;
+  --header-h: 60px;
+  --z-header: 20;
+  --z-drawer: 60;
+  --z-modal: 100;
 }
 
+/* ------------------------- الوضع الفاتح (الافتراضي) ------------------------- */
 :root,
-[data-theme='dark'] {
-  --bg-page: #0b1220;
-  --bg-panel: #111a2e;
-  --bg-panel-alt: #0f1728;
-  --border-subtle: #1f2b45;
-  --text-primary: #eef2f9;
-  --text-secondary: #8a93a8;
-  --text-muted: #5f6a82;
+[data-theme='light'] {
+  --bg-page: #f6f7f9;
+  --bg-panel: #ffffff;
+  --bg-panel-alt: #f1f3f6;
+  --bg-inset: #eceff3;
+  --border-subtle: #e2e6ec;
+  --border-strong: #cbd2dc;
 
-  --accent-green: #22c58b;
-  --accent-green-bg: rgba(34, 197, 139, 0.12);
-  --accent-red: #e5484d;
-  --accent-red-bg: rgba(229, 72, 77, 0.12);
-  --accent-purple: #8b5cf6;
-  --accent-purple-bg: rgba(139, 92, 246, 0.12);
-  --accent-blue: #3b82f6;
-  --accent-blue-bg: rgba(59, 130, 246, 0.12);
-  --accent-amber: #f5a524;
-  --accent-amber-bg: rgba(245, 165, 36, 0.12);
+  --text-primary: #101828;
+  --text-secondary: #58627a;
+  --text-muted: #8a93a5;
+  --text-on-brand: #ffffff;
+
+  /* البترولي: البنية والإجراء الأساسي فقط */
+  --brand: #0f5257;
+  --brand-hover: #0c4247;
+  --brand-soft: #e6f0f0;
+  --brand-ring: rgba(15, 82, 87, 0.28);
+
+  /* ألوان دلالية - لكلٍّ معنى واحد لا يتغيّر */
+  --accent-green: #0e7c4a;
+  --accent-green-bg: #e6f4ed;
+  --accent-red: #c0272d;
+  --accent-red-bg: #fbeaea;
+  --accent-amber: #a35b06;
+  --accent-amber-bg: #fdf1e3;
+  --accent-blue: #2b5ca8;
+  --accent-blue-bg: #e9eff9;
+  --accent-purple: #6d4aa8;
+  --accent-purple-bg: #efeaf8;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 2px 8px rgba(16, 24, 40, 0.07);
+  --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.12);
+  --scrim: rgba(16, 24, 40, 0.45);
 }
 
-[data-theme='light'] {
-  --bg-page: #f5f6fa;
-  --bg-panel: #ffffff;
-  --bg-panel-alt: #f1f3f8;
-  --border-subtle: #e5e8f0;
-  --text-primary: #182236;
-  --text-secondary: #6b7688;
-  --text-muted: #9ba4b5;
+/* ------------------------------ الوضع الداكن ------------------------------ */
+[data-theme='dark'] {
+  --bg-page: #0c1118;
+  --bg-panel: #131a24;
+  --bg-panel-alt: #1a222e;
+  --bg-inset: #0f151d;
+  --border-subtle: #232d3b;
+  --border-strong: #33404f;
 
-  --accent-green: #16a34a;
-  --accent-green-bg: rgba(22, 163, 74, 0.1);
-  --accent-red: #dc2626;
-  --accent-red-bg: rgba(220, 38, 38, 0.1);
-  --accent-purple: #7c3aed;
-  --accent-purple-bg: rgba(124, 58, 237, 0.1);
-  --accent-blue: #2563eb;
-  --accent-blue-bg: rgba(37, 99, 235, 0.1);
-  --accent-amber: #d97706;
-  --accent-amber-bg: rgba(217, 119, 6, 0.12);
+  --text-primary: #e9edf3;
+  --text-secondary: #98a3b5;
+  --text-muted: #6b7688;
+  --text-on-brand: #ffffff;
+
+  /* البترولي يُفتَح في الوضع الداكن بدل عكسه - العكس المباشر يفقد الهوية */
+  --brand: #3fa9a4;
+  --brand-hover: #55bdb8;
+  --brand-soft: rgba(63, 169, 164, 0.14);
+  --brand-ring: rgba(63, 169, 164, 0.4);
+
+  --accent-green: #35c98a;
+  --accent-green-bg: rgba(53, 201, 138, 0.14);
+  --accent-red: #f2646a;
+  --accent-red-bg: rgba(242, 100, 106, 0.14);
+  --accent-amber: #e2a13c;
+  --accent-amber-bg: rgba(226, 161, 60, 0.14);
+  --accent-blue: #6f9ce8;
+  --accent-blue-bg: rgba(111, 156, 232, 0.14);
+  --accent-purple: #a98ae0;
+  --accent-purple-bg: rgba(169, 138, 224, 0.14);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --scrim: rgba(0, 0, 0, 0.6);
 }
 
 .theme-toggle {
@@ -79,27 +130,45 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  height: 100%;
   background: var(--bg-page);
   color: var(--text-primary);
   font-family: var(--font-main);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* الأرقام بأشكال جدولية ثابتة العرض حتى تصطف الأعمدة المالية */
+table, .num, .kpi-value, .metric-card .value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ===========================================================================
+   هيكل الصفحة: الغلاف لا يتمرّر إطلاقًا؛ الشريط الجانبي ومنطقة المحتوى يتمرّر
+   كلٌّ منهما مستقلًّا. قبل ذلك كان الجسم كله يتمرّر فيغيب الشريط الجانبي عن
+   الشاشة كلما نزل المستخدم - وهو ما يُفقد التنقّل في أي صفحة طويلة.
+   =========================================================================== */
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .sidebar {
-  width: 220px;
+  width: var(--sidebar-w);
   background: var(--bg-panel);
   border-left: 1px solid var(--border-subtle);
-  padding: 20px 14px;
+  padding: var(--sp-5) var(--sp-3);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sidebar-brand {
@@ -115,7 +184,8 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  background: var(--brand);
+  color: var(--text-on-brand);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,13 +206,21 @@ body {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: var(--sp-3);
+  padding: 9px var(--sp-3);
+  min-height: 40px;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13.5px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke-width: 1.75;
 }
 
 .nav-item:hover {
@@ -150,10 +228,12 @@ body {
   color: var(--text-primary);
 }
 
+/* الحالة النشطة تُعلَن بشريط جانبي ولون معًا، لا باللون وحده */
 .nav-item.active {
-  background: var(--accent-blue-bg);
-  color: var(--accent-blue);
+  background: var(--brand-soft);
+  color: var(--brand);
   font-weight: 600;
+  box-shadow: inset -3px 0 0 var(--brand);
 }
 
 .nav-item .badge {
@@ -167,8 +247,34 @@ body {
 
 .main-area {
   flex: 1;
-  padding: 20px 24px 60px;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 0 var(--sp-6) var(--sp-10);
+  scroll-behavior: smooth;
+}
+
+/* رأس الصفحة يلتصق أعلى منطقة المحتوى - يبقى اسم الشاشة وأدواتها في المتناول */
+.page-header,
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  background: var(--bg-page);
+  padding-block: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-area { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .topbar {
@@ -440,9 +546,10 @@ table.attention-table td {
     font-size: 18px;
     cursor: pointer;
     position: fixed;
-    top: 14px;
-    right: 14px;
-    z-index: 210;
+    top: 12px;
+    inset-inline-start: 14px;
+    right: auto;
+    z-index: calc(var(--z-drawer) + 2);
   }
 
   .sidebar {
@@ -464,8 +571,8 @@ table.attention-table td {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(5, 9, 18, 0.6);
-    z-index: 190;
+    background: var(--scrim);
+    z-index: var(--z-drawer);
   }
 
   .grid-metrics {
@@ -474,7 +581,16 @@ table.attention-table td {
     grid-template-columns: unset;
   }
   .grid-metrics .card { min-width: 200px; }
-  .main-area { padding: 14px; padding-top: 64px; }
+  .main-area { padding: 0 14px 32px; }
+
+  /* الرأس اللاصق يبدأ بعد زر القائمة الثابت، وإلا انزلق النص تحته */
+  .page-header,
+  .topbar {
+    padding-inline-start: 52px;
+    padding-block: var(--sp-3);
+  }
+
+  .sidebar { z-index: calc(var(--z-drawer) + 1); }
 
   .card:has(table) {
     overflow-x: auto;
@@ -484,11 +600,11 @@ table.attention-table td {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(5, 9, 18, 0.6);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-modal);
   padding: 20px;
 }
 
@@ -632,4 +748,296 @@ tr.row-warning td {
 
 a.nav-item {
   text-decoration: none;
+}
+
+
+/* ===========================================================================
+   الأساسيات التي كانت غائبة: تركيز الكيبورد، رؤوس الجداول اللاصقة، وحالات
+   الأزرار. غيابها هو ما يجعل الواجهة تبدو غير مكتملة مهما حُسِّنت ألوانها.
+   =========================================================================== */
+
+/* حلقة تركيز واحدة لكل عنصر تفاعلي - كانت الواجهة بلا أي مؤشر تركيز عمليًا */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+[data-theme='dark'] :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: var(--brand-hover);
+}
+
+/* تخطّي إلى المحتوى - أول عنصر يصله مستخدم الكيبورد */
+.skip-link {
+  position: absolute;
+  inset-inline-start: -9999px;
+  top: var(--sp-2);
+  z-index: var(--z-modal);
+  background: var(--brand);
+  color: var(--text-on-brand);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+}
+
+.skip-link:focus {
+  inset-inline-start: var(--sp-4);
+}
+
+/* رؤوس الجداول تلتصق داخل حاويتها - جدول طويل بلا رأس لاصق يفقد معناه بعد صفّين */
+.data-table thead th,
+.attention-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-panel);
+  box-shadow: inset 0 -1px 0 var(--border-subtle);
+}
+
+.table-scroll {
+  overflow: auto;
+  max-height: 60vh;
+  overscroll-behavior: contain;
+}
+
+/* كل جدول عريض يتمرّر داخل نفسه بدل دفع الصفحة أفقيًا */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ------------------------------- الأزرار ------------------------------- */
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  min-height: 36px;
+  padding: 7px var(--sp-4);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+              color var(--dur) var(--ease);
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: var(--text-on-brand);
+  border: 1px solid var(--brand);
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
+
+.btn-secondary {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+}
+
+.btn-secondary:hover:not(:disabled) { background: var(--bg-panel-alt); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover:not(:disabled) { background: var(--bg-panel-alt); color: var(--text-primary); }
+
+/* المعطَّل يبدو معطَّلًا ولا يستقبل المؤشر - كان يبدو قابلًا للضغط */
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary svg,
+.btn-secondary svg,
+.btn-ghost svg { width: 15px; height: 15px; }
+
+/* الإجراءات الهدّامة تُميَّز باللون الدلالي لا بالأساسي */
+.btn-danger {
+  background: transparent;
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+}
+
+.btn-danger:hover:not(:disabled) { background: var(--accent-red-bg); }
+
+/* ------------------------------ حقول الإدخال ------------------------------ */
+input, select, textarea {
+  font-family: inherit;
+  font-size: 13px;
+  min-height: 36px;
+  padding: 7px var(--sp-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+input:hover, select:hover, textarea:hover { border-color: var(--text-muted); }
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-ring);
+  outline: none;
+}
+
+input:disabled, select:disabled, textarea:disabled {
+  background: var(--bg-inset);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* البطاقات: ظل خفيف بدل الحدّ وحده - يفصل السطح عن الورق في الوضع الفاتح */
+.card {
+  box-shadow: var(--shadow-sm);
+}
+
+/* رقاقة الحالة: لون + نص، لا لون وحده */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-chip svg { width: 12px; height: 12px; }
+
+
+/* بلاطات المؤشرات: الأيقونة رمز خافت أعلى البطاقة، والرقم هو البطل */
+.metric-card .icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--sp-3);
+}
+
+.metric-card .label {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.metric-card .value {
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.metric-card .delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  margin-top: var(--sp-2);
+}
+
+.metric-card .delta.up { color: var(--accent-green); }
+.metric-card .delta.down { color: var(--accent-red); }
+
+.metric-card .caption {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: var(--sp-2);
+}
+
+/* عنوان البطاقة: وزن أعلى ومسافة ثابتة، بدل تفاوت من صفحة لأخرى */
+.card-title {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  margin-bottom: var(--sp-4);
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  margin: var(--sp-6) 0 var(--sp-3);
+}
+
+/* زر المظهر وجرس التنبيهات: نفس القياس ونفس الحدّ */
+.theme-toggle,
+.notification-bell-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.theme-toggle:hover,
+.notification-bell-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+
+/* ===========================================================================
+   ألوان الرسوم: تسلسل واحد للسلاسل المتعددة، مشتق من هوية المنتج لا من
+   افتراضيات المكتبة. الأخضر والأحمر محجوزان للدلالة (فرصة/خطر) فلا يظهران
+   كلونَي سلسلتين عاديّتين.
+   =========================================================================== */
+:root, [data-theme='light'] {
+  --chart-1: #0f5257;
+  --chart-2: #2b7a78;
+  --chart-3: #57a5a0;
+  --chart-4: #8cc5bd;
+  --chart-5: #b9853f;
+  --chart-grid: #e6e9ee;
+  --chart-axis: #7b8598;
+}
+
+[data-theme='dark'] {
+  --chart-1: #3fa9a4;
+  --chart-2: #58bdb6;
+  --chart-3: #7fd0c8;
+  --chart-4: #a7e0da;
+  --chart-5: #d8a55e;
+  --chart-grid: #232d3b;
+  --chart-axis: #8894a6;
+}
+
+
+/* صف إجراءات القرار: الأساسي أولًا، والهدّام مدفوع لآخر الصف بمسافة تفصله */
+.decision-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.decision-actions__dismiss {
+  margin-inline-start: auto;
+  color: var(--text-muted);
+}
+
+.decision-actions__dismiss:hover:not(:disabled) {
+  color: var(--accent-red);
+  background: var(--accent-red-bg);
 }

@@ -12,7 +12,7 @@ public record DashboardResponse(
         double marginChangePercent,
         double availableLiquidity,
         double liquidityChangePercent,
-        HealthScoreDto healthScore,
+        BhiResultDto healthScore,
         List<SalesPoint> salesTrend,
         List<RecommendationDto> topRecommendations,
         Map<String, Double> inventoryBreakdown, // FAST/MEDIUM/SLOW/STAGNANT -> value

@@ -65,7 +65,7 @@ export function AdminStagnantItemsPage() {
 
         {clearanceGroups.length > 0 && (
           <div className="card" style={{ marginBottom: 14 }}>
-            <div className="card-title">فرص تصريف مشترك 💡</div>
+            <div className="card-title">فرص تصريف مشترك </div>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
               نفس الصنف راكد لدى أكثر من مؤسسة — فرصة لتجميع الكمية في صفقة تصريف أو شراء جماعي واحدة بدل التعامل مع كل مؤسسة منفردة.
             </p>
@@ -84,7 +84,7 @@ export function AdminStagnantItemsPage() {
         <div className="card">
           <div className="card-title">تجميع كل الأصناف الراكدة (مرتّبة حسب القيمة)</div>
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
-            الأصناف المميّزة 💡 لديها فرصة تصريف مشترك أعلاه. أتمتة كاملة للمطابقة والتفاوض جزء من مرحلة لاحقة.
+            الأصناف المميّزة  لديها فرصة تصريف مشترك أعلاه. أتمتة كاملة للمطابقة والتفاوض جزء من مرحلة لاحقة.
           </p>
           {items === null && <p style={{ color: 'var(--text-secondary)' }}>جاري التحميل...</p>}
           {items !== null && items.length === 0 && (
@@ -105,7 +105,7 @@ export function AdminStagnantItemsPage() {
               <tbody>
                 {items.map((i, idx) => (
                   <tr key={idx}>
-                    <td>{matchedItemNames.has(i.itemName) ? `💡 ${i.itemName}` : i.itemName}</td>
+                    <td>{matchedItemNames.has(i.itemName) ? `${i.itemName}` : i.itemName}</td>
                     <td>{i.organizationName}</td>
                     <td>{i.branchName}</td>
                     <td>{i.quantity.toLocaleString('ar')}</td>

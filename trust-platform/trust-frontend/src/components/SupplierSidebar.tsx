@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getSession } from '../auth/session';
 import { ThemeToggle } from './ThemeToggle';
+import { Icon, type IconName } from './Icon';
 
-const items = [
-  { key: 'overview', label: 'نظرة عامة', icon: '📦', path: '/supplier' },
+const items: { key: string; label: string; icon: IconName; path: string }[] = [
+  { key: 'overview', label: 'نظرة عامة', icon: 'dashboard', path: '/supplier' },
 ];
 
 export function SupplierSidebar() {
@@ -24,7 +25,7 @@ export function SupplierSidebar() {
 
   return (
     <>
-      <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="فتح القائمة">☰</button>
+      <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="فتح القائمة"><Icon name="menu" size={18} /></button>
       <div className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`} onClick={() => setMobileOpen(false)} />
       <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
@@ -37,7 +38,7 @@ export function SupplierSidebar() {
         </div>
         {items.map((item) => (
           <Link key={item.key} to={item.path} className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}>
-            <span>{item.icon}</span>
+            <Icon name={item.icon} />
             <span>{item.label}</span>
           </Link>
         ))}
@@ -48,7 +49,7 @@ export function SupplierSidebar() {
             </div>
           )}
           <div className="nav-item" style={{ cursor: 'pointer' }} onClick={handleLogout}>
-            <span>🚪</span>
+            <Icon name="logout" />
             <span>تسجيل الخروج</span>
           </div>
         </div>

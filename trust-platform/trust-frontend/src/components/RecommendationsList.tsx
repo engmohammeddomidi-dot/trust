@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { applyRecommendation, dismissRecommendation, regenerateRecommendations, type RecommendationDto } from '../api/client';
 import { requireBranchId } from '../auth/session';
+import { Icon, type IconName } from './Icon';
 
 const priorityLabel: Record<string, string> = { HIGH: 'عالية', MEDIUM: 'متوسطة', LOW: 'منخفضة' };
-const typeIcon: Record<string, string> = {
-  STOP_PURCHASE: '📦',
-  INCREASE_ORDER: '📈',
-  ADJUST_PRICE: '🏷️',
-  PROMOTION_CAMPAIGN: '📣',
-  LIQUIDITY_ALERT: '💧',
-  EXPIRY_ALERT: '⏰',
+const typeIcon: Record<string, IconName> = {
+  STOP_PURCHASE: 'item',
+  INCREASE_ORDER: 'opportunity',
+  ADJUST_PRICE: 'pricing',
+  PROMOTION_CAMPAIGN: 'pricing',
+  LIQUIDITY_ALERT: 'liquidity',
+  EXPIRY_ALERT: 'stagnant',
 };
 
 export function RecommendationsList({ items, onChanged }: { items: RecommendationDto[]; onChanged: () => void }) {
@@ -40,7 +41,7 @@ export function RecommendationsList({ items, onChanged }: { items: Recommendatio
 
   return (
     <div className="card">
-      <div className="card-title">أهم التوصيات التنفيذية 🎯</div>
+      <div className="card-title">أهم التوصيات التنفيذية </div>
 
       {items.length === 0 && (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -48,7 +49,7 @@ export function RecommendationsList({ items, onChanged }: { items: Recommendatio
             لا توجد توصيات مفتوحة حاليًا
           </p>
           <button className="btn-primary" onClick={handleGenerate} disabled={generating}>
-            {generating ? 'جارِ التوليد...' : '🔄 توليد التوصيات الآن'}
+            {generating ? 'جارِ التوليد...' : 'توليد التوصيات الآن'}
           </button>
         </div>
       )}
@@ -58,24 +59,20 @@ export function RecommendationsList({ items, onChanged }: { items: Recommendatio
           <span className={`priority-tag priority-${rec.priority}`}>{priorityLabel[rec.priority]}</span>
           <span className="rec-title">{rec.title}</span>
           <span className="rec-value">
-            {typeIcon[rec.type] ?? '💡'} {Math.round(rec.expectedValue / 1000)}K
+            <Icon name={typeIcon[rec.type] ?? 'info'} size={13} /> {Math.round(rec.expectedValue / 1000)}K
           </span>
           <button
             className="rec-action rec-action-apply"
             title="تطبيق"
             disabled={busyId === rec.id}
             onClick={() => handle('apply', rec.id)}
-          >
-            ✓
-          </button>
+          ><Icon name="approve" /></button>
           <button
             className="rec-action rec-action-dismiss"
             title="تجاهل"
             disabled={busyId === rec.id}
             onClick={() => handle('dismiss', rec.id)}
-          >
-            ✕
-          </button>
+          ><Icon name="close" /></button>
         </div>
       ))}
 

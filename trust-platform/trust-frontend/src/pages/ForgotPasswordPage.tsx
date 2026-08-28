@@ -45,7 +45,7 @@ export function ForgotPasswordPage() {
                 background: 'var(--accent-amber-bg)', color: 'var(--accent-amber)', padding: '10px 14px',
                 borderRadius: 'var(--radius-md)', fontSize: 12, marginBottom: 14,
               }}>
-                ⚠️ لا توجد خدمة بريد فعلية بعد — إليك رابط الاستعادة مباشرة كحل مؤقت:
+                 لا توجد خدمة بريد فعلية بعد — إليك رابط الاستعادة مباشرة كحل مؤقت:
                 <br />
                 <Link to={`/reset-password?token=${encodeURIComponent(resetToken)}`} style={{ color: 'var(--accent-blue)', wordBreak: 'break-all' }}>
                   فتح صفحة إعادة تعيين كلمة المرور

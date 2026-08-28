@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { Icon } from './Icon';
 
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   useEffect(() => {
@@ -15,7 +16,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">{title}</div>
-          <button className="modal-close" onClick={onClose} aria-label="إغلاق">✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="إغلاق"><Icon name="close" /></button>
         </div>
         {children}
       </div>

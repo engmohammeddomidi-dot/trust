@@ -99,7 +99,7 @@ export function LiquidityPage() {
         {openRecs !== null && openRecs.length > 0 && (
           <div className="footer-banner">
             <span style={{ fontSize: 13 }}>
-              📈 تنفيذ التوصيات المفتوحة ({openRecs.length}) قد يحرر حتى{' '}
+               تنفيذ التوصيات المفتوحة ({openRecs.length}) قد يحرر حتى{' '}
               <strong style={{ color: 'var(--accent-green)' }}>{Math.round(potentialRelease).toLocaleString('ar')} شيكل</strong> من السيولة
             </span>
           </div>

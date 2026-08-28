@@ -28,4 +28,10 @@ public class Organization {
     private Category category;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /**
+     * حقوق الملكية - يُدخلها صاحب المنشأة في الإعدادات. فارغة تعني أن مؤشر نسبة الدين
+     * إلى حقوق الملكية يبقى "غير متاح" بصدق بدل افتراض رقم.
+     */
+    private Double equity;
 }

@@ -1,6 +1,7 @@
 package com.trust.web.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record DecisionDto(
         Long id,
@@ -18,5 +19,24 @@ public record DecisionDto(
         double financialImpact,
         LocalDateTime createdAt,
         LocalDateTime resolvedAt,
-        String actualOutcome
-) {}
+        String actualOutcome,
+        /** "لو تجاهلت" - الوجه الآخر للتوصية */
+        String ifIgnoredSummary,
+        /** القيود التي راعاها المحرك، مفصولة بنقطة */
+        String constraintsSummary,
+        /** أسباب درجة الثقة، مفصولة بنقطة */
+        String confidenceReasons,
+        List<Alternative> alternatives
+) {
+    /** بديل معروض على البطاقة - واحد منها فقط recommended */
+    public record Alternative(
+            String key,
+            String label,
+            double quantity,
+            double orderValue,
+            double coverageDays,
+            boolean recommended,
+            boolean liquidityLimited,
+            String tradeOff
+    ) {}
+}

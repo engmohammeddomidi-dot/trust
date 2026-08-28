@@ -81,7 +81,7 @@ export function ReportsPage() {
               <div className="card-title">{r.title}</div>
               <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>{r.desc}</p>
               <button className="btn-primary" onClick={r.action} disabled={exporting === r.key}>
-                {exporting === r.key ? 'جارِ التصدير...' : '⬇ تصدير CSV'}
+                {exporting === r.key ? 'جارِ التصدير...' : 'تصدير CSV'}
               </button>
             </div>
           ))}

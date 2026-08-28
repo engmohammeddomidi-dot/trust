@@ -20,6 +20,7 @@ import { AdminOrganizationsPage } from './pages/admin/AdminOrganizationsPage';
 import { AdminStagnantItemsPage } from './pages/admin/AdminStagnantItemsPage';
 import { AdminGroupOrdersPage } from './pages/admin/AdminGroupOrdersPage';
 import { AdminBenchmarksPage } from './pages/admin/AdminBenchmarksPage';
+import { AdminBhiConfigPage } from './pages/admin/AdminBhiConfigPage';
 import { SupplierOverviewPage } from './pages/supplier/SupplierOverviewPage';
 import './styles/theme.css';
 
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/admin/stagnant-items" element={<AdminStagnantItemsPage />} />
         <Route path="/admin/group-orders" element={<AdminGroupOrdersPage />} />
         <Route path="/admin/benchmarks" element={<AdminBenchmarksPage />} />
+        <Route path="/admin/bhi-config" element={<AdminBhiConfigPage />} />
       </Route>
 
       <Route element={<RequireAuth requireSupplier />}>

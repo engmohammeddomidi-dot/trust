@@ -42,6 +42,8 @@ public class OrganizationController {
         accessGuard.requireOrganization(principal, id);
         Organization org = organizationRepository.findById(id).orElseThrow();
         org.setName(request.name());
+        // فارغة تعني "لم تُسجَّل بعد" ويبقى مؤشر نسبة الدين غير متاح - وهذا مقصود
+        org.setEquity(request.equity());
         return toDto(organizationRepository.save(org));
     }
 
@@ -62,7 +64,7 @@ public class OrganizationController {
     }
 
     private static OrganizationDto toDto(Organization org) {
-        return new OrganizationDto(org.getId(), org.getName(), org.getCategory().name());
+        return new OrganizationDto(org.getId(), org.getName(), org.getCategory().name(), org.getEquity());
     }
 
     private static BranchDto toDto(Branch branch) {

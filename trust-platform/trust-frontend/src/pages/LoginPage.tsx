@@ -52,7 +52,7 @@ export function LoginPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
           <div className="logo" style={{
             width: 40, height: 40, borderRadius: 10,
-            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))',
+            background: 'var(--brand)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700,
           }}>T</div>
           <div>

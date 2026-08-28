@@ -250,7 +250,7 @@ export function SuppliersPage() {
         </div>
 
         <div className="card">
-          <div className="card-title">مشاركاتي في الطلبات الجماعية 🤝</div>
+          <div className="card-title">مشاركاتي في الطلبات الجماعية</div>
           {participations === null && <p style={{ color: 'var(--text-secondary)' }}>جاري التحميل...</p>}
           {participations !== null && participations.length === 0 && (
             <p style={{ color: 'var(--text-secondary)' }}>

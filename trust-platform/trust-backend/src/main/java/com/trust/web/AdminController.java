@@ -15,7 +15,7 @@ import com.trust.repository.OrganizationRepository;
 import com.trust.repository.UserRepository;
 import com.trust.service.AuditLogService;
 import com.trust.service.DecisionAnalyticsService;
-import com.trust.service.HealthScoreService;
+import com.trust.service.BhiService;
 import com.trust.web.dto.AdminCityBreakdownDto;
 import com.trust.web.dto.AdminDecisionDto;
 import com.trust.web.dto.AdminHealthDistributionDto;
@@ -63,7 +63,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final DecisionRepository decisionRepository;
     private final DecisionAnalyticsService decisionAnalyticsService;
-    private final HealthScoreService healthScoreService;
+    private final BhiService bhiService;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
@@ -71,7 +71,7 @@ public class AdminController {
                             ItemRepository itemRepository, DailyEntryRepository dailyEntryRepository,
                             UserRepository userRepository, DecisionRepository decisionRepository,
                             DecisionAnalyticsService decisionAnalyticsService,
-                            HealthScoreService healthScoreService,
+                            BhiService bhiService,
                             PasswordEncoder passwordEncoder, AuditLogService auditLogService) {
         this.organizationRepository = organizationRepository;
         this.branchRepository = branchRepository;
@@ -80,7 +80,7 @@ public class AdminController {
         this.userRepository = userRepository;
         this.decisionRepository = decisionRepository;
         this.decisionAnalyticsService = decisionAnalyticsService;
-        this.healthScoreService = healthScoreService;
+        this.bhiService = bhiService;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
     }
@@ -301,8 +301,9 @@ public class AdminController {
     private AdminHealthDistributionDto buildHealthDistribution(List<AdminOrganizationDto> orgs) {
         int good = 0, medium = 0, poor = 0;
         for (AdminOrganizationDto org : orgs) {
-            if (org.avgHealthScore() >= 61) good++;
-            else if (org.avgHealthScore() >= 41) medium++;
+            // نفس حدود تصنيف BHI المستخدمة في BhiScoringEngine.classify
+            if (org.avgHealthScore() >= 70) good++;
+            else if (org.avgHealthScore() >= 55) medium++;
             else poor++;
         }
         return new AdminHealthDistributionDto(good, medium, poor);
@@ -327,13 +328,17 @@ public class AdminController {
                 .toList();
     }
 
+    /**
+     * متوسط مؤشر صحة الأعمال عبر فروع - يستخدم نموذج BHI نفسه الذي يراه صاحب المحل،
+     * حتى لا يكون في المنصة رقمان مختلفان يحملان الاسم ذاته.
+     * الفروع بلا بيانات كافية تُستبعد من المتوسط (لا تُحتسب صفرًا).
+     */
     private double avgHealthScore(List<Branch> branches) {
         if (branches.isEmpty()) return 0;
         LocalDate to = LocalDate.now();
         LocalDate from = to.minusDays(30);
-        return branches.stream()
-                .mapToDouble(b -> healthScoreService.calculate(b, from, to).totalScore())
-                .average().orElse(0);
+        Double total = bhiService.averageAcross(branches, from, to).totalScore();
+        return total != null ? total : 0;
     }
 
     private Map<Long, LocalDate> lastActivityByBranch(List<Long> branchIds) {

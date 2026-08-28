@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Icon, type IconName } from './Icon';
 import { clearSession, getSession } from '../auth/session';
 
-const items = [
-  { key: 'overview', label: 'نظرة عامة', icon: '📊', path: '/admin' },
-  { key: 'organizations', label: 'المؤسسات', icon: '🏢', path: '/admin/organizations' },
-  { key: 'stagnant', label: 'الأصناف الراكدة', icon: '📦', path: '/admin/stagnant-items' },
-  { key: 'group-orders', label: 'الطلبات الجماعية', icon: '🤝', path: '/admin/group-orders' },
-  { key: 'benchmarks', label: 'المعايير المرجعية', icon: '⚙️', path: '/admin/benchmarks' },
+const items: { key: string; label: string; icon: IconName; path: string }[] = [
+  { key: 'overview', label: 'نظرة عامة', icon: 'dashboard', path: '/admin' },
+  { key: 'organizations', label: 'المؤسسات', icon: 'organizations', path: '/admin/organizations' },
+  { key: 'stagnant', label: 'الأصناف الراكدة', icon: 'stagnant', path: '/admin/stagnant-items' },
+  { key: 'group-orders', label: 'الطلبات الجماعية', icon: 'groupOrders', path: '/admin/group-orders' },
+  { key: 'benchmarks', label: 'المعايير المرجعية', icon: 'benchmarks', path: '/admin/benchmarks' },
+  { key: 'bhi-config', label: 'معايرة مؤشر الصحة', icon: 'calibration', path: '/admin/bhi-config' },
 ];
 
 export function AdminSidebar() {
@@ -27,7 +29,7 @@ export function AdminSidebar() {
 
   return (
     <>
-      <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="فتح القائمة">☰</button>
+      <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="فتح القائمة"><Icon name="menu" size={18} /></button>
       <div className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`} onClick={() => setMobileOpen(false)} />
       <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
@@ -39,7 +41,7 @@ export function AdminSidebar() {
         </div>
         {items.map((item) => (
           <Link key={item.key} to={item.path} className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}>
-            <span>{item.icon}</span>
+            <Icon name={item.icon} />
             <span>{item.label}</span>
           </Link>
         ))}
@@ -50,7 +52,7 @@ export function AdminSidebar() {
             </div>
           )}
           <div className="nav-item" style={{ cursor: 'pointer' }} onClick={handleLogout}>
-            <span>🚪</span>
+            <Icon name="logout" />
             <span>تسجيل الخروج</span>
           </div>
         </div>

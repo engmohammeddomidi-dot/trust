@@ -29,7 +29,7 @@ export function SalesChart({ data }: { data: { date: string; sales: number }[] }
             contentStyle={{ background: 'var(--bg-panel-alt)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}
             labelStyle={{ color: 'var(--text-primary)' }}
           />
-          <Bar dataKey="sales" fill="var(--accent-blue)" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="sales" fill="var(--brand)" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

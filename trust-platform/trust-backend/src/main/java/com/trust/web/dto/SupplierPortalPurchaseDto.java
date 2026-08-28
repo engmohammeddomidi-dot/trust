@@ -12,5 +12,8 @@ public record SupplierPortalPurchaseDto(
         String status,
         LocalDate purchaseDate,
         LocalDate expectedDeliveryDate,
-        LocalDate receivedDate
+        LocalDate receivedDate,
+        String supplierResponse,
+        LocalDate supplierPromisedDate,
+        String supplierRejectionReason
 ) {}

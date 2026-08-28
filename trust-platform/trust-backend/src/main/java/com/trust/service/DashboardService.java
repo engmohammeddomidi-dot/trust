@@ -6,7 +6,9 @@ import com.trust.web.dto.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +16,17 @@ import java.util.Map;
 @Service
 public class DashboardService {
 
+    /** سقف الشاشة الرئيسية - رؤية المنتج: خمسون تنبيهًا تعني أن المستخدم يغلق التطبيق */
+    private static final int MAX_HOME_SCREEN_SIGNALS = 5;
+    /** بضاعة تنتهي خلال هذه المدة تُعتبر إشارة تستحق الظهور */
+    private static final int EXPIRY_HORIZON_DAYS = 30;
+
     private final BranchRepository branchRepository;
     private final DailyEntryRepository dailyEntryRepository;
     private final ItemRepository itemRepository;
     private final RecommendationRepository recommendationRepository;
-    private final HealthScoreService healthScoreService;
+    private final BhiService bhiService;
+    private final OpportunityFeedService opportunityFeedService;
     private final ItemService itemService;
     private final DecisionRepository decisionRepository;
     private final GroupOrderParticipantRepository groupOrderParticipantRepository;
@@ -28,7 +36,8 @@ public class DashboardService {
 
     public DashboardService(BranchRepository branchRepository, DailyEntryRepository dailyEntryRepository,
                              ItemRepository itemRepository, RecommendationRepository recommendationRepository,
-                             HealthScoreService healthScoreService, ItemService itemService,
+                             BhiService bhiService, OpportunityFeedService opportunityFeedService,
+                             ItemService itemService,
                              DecisionRepository decisionRepository,
                              GroupOrderParticipantRepository groupOrderParticipantRepository,
                              DecisionAnalyticsService decisionAnalyticsService,
@@ -38,7 +47,8 @@ public class DashboardService {
         this.dailyEntryRepository = dailyEntryRepository;
         this.itemRepository = itemRepository;
         this.recommendationRepository = recommendationRepository;
-        this.healthScoreService = healthScoreService;
+        this.bhiService = bhiService;
+        this.opportunityFeedService = opportunityFeedService;
         this.itemService = itemService;
         this.decisionRepository = decisionRepository;
         this.groupOrderParticipantRepository = groupOrderParticipantRepository;
@@ -69,9 +79,9 @@ public class DashboardService {
         double availableLiquidity = entries.isEmpty() ? 0 : entries.get(entries.size() - 1).getAvailableLiquidity();
         double liquidityChange = changePercent(entries, DailyEntry::getAvailableLiquidity);
 
-        HealthScoreDto healthScore = branches.size() == 1
-                ? healthScoreService.calculate(branches.get(0), from, to)
-                : averageHealthScore(branches, from, to);
+        BhiResultDto healthScore = branches.size() == 1
+                ? bhiService.calculate(branches.get(0), from, to)
+                : bhiService.averageAcross(branches, from, to);
 
         List<DashboardResponse.SalesPoint> salesTrend = entries.stream()
                 .map(e -> new DashboardResponse.SalesPoint(e.getEntryDate().toString(), e.getTotalSales()))
@@ -115,10 +125,15 @@ public class DashboardService {
 
     /** أعلى الأصناف تأثيرًا + تنبيهات تنفيذية حقيقية (لا توجد "عروض موردين" مُصطنعة - لا يوجد نموذج بيانات لها بعد) */
     private ExecutiveActionCenterDto buildExecutiveActionCenter(List<Item> items, List<Long> branchIds) {
+        double branchDailyCogs = dailyEntryRepository
+                .findByBranchIdInAndEntryDateBetweenOrderByEntryDateAsc(branchIds, LocalDate.now().minusDays(1), LocalDate.now())
+                .stream().mapToDouble(DailyEntry::getTotalCogs).max().orElse(0);
+        Map<Long, Double> dailySalesByItem = SalesEstimator.forBranch(items, branchDailyCogs);
+
         List<ExecutiveActionCenterDto.TopItemDto> topProfitability = items.stream()
                 .filter(i -> i.getMovementStatus() != Item.MovementStatus.STAGNANT)
                 .map(i -> new ExecutiveActionCenterDto.TopItemDto(i.getName(),
-                        SalesEstimator.estimateDailySales(i) * 30 * i.getSalePrice() * (i.getMarginPercent() / 100.0)))
+                        dailySalesByItem.getOrDefault(i.getId(), 0.0) * 30 * i.getSalePrice() * (i.getMarginPercent() / 100.0)))
                 .sorted((a, b) -> Double.compare(b.value(), a.value()))
                 .limit(3)
                 .toList();
@@ -138,13 +153,16 @@ public class DashboardService {
                 .filter(i -> i.getMovementStatus() == Item.MovementStatus.SLOW || i.getMovementStatus() == Item.MovementStatus.STAGNANT)
                 .count();
 
+        List<ExecutiveActionCenterDto.OpportunitySignalDto> todaysOpportunities =
+                buildTodaysOpportunities(items, branchIds);
+
         List<ExecutiveActionCenterDto.ExecutiveAlertDto> alerts = List.of(
                 new ExecutiveActionCenterDto.ExecutiveAlertDto("GROUP_ORDER", "طلبات شراء جماعي متاحة", openGroupOrders),
                 new ExecutiveActionCenterDto.ExecutiveAlertDto("LOW_STOCK", "تنبيه مخزون منخفض", (int) lowStockAlerts),
                 new ExecutiveActionCenterDto.ExecutiveAlertDto("SLOW_MOVING", "أصناف بطيئة الحركة", (int) slowMovingItems)
         );
 
-        return new ExecutiveActionCenterDto(topProfitability, topAccumulatedCost, alerts);
+        return new ExecutiveActionCenterDto(topProfitability, topAccumulatedCost, alerts, todaysOpportunities);
     }
 
     /** دفتر الأثر الشهري (Monthly Impact Ledger) - رؤية PM: "العميل يرى العائد، لا الفاتورة" */
@@ -172,7 +190,7 @@ public class DashboardService {
 
     /** ملخص الأداء اليومي (رؤية PM: الفرص/المخاطر مباشرة على الشاشة الرئيسية بدل أرقام مجردة) */
     private DailyPerformanceSummaryDto buildDailyPerformanceSummary(Long organizationId, List<Long> branchIds,
-                                                                      List<Item> items, HealthScoreDto healthScore) {
+                                                                      List<Item> items, BhiResultDto healthScore) {
         LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
 
         double marketValueThisMonth = 0;
@@ -197,7 +215,7 @@ public class DashboardService {
                 .sum();
 
         return new DailyPerformanceSummaryDto(savingsRate, Math.round(savingsThisMonth * 100) / 100.0,
-                healthScore.inventoryScore(), purchaseVolumeNeeded, clearanceVolumeNeeded);
+                axisScoreOrZero(healthScore, BhiAxis.INVENTORY_MANAGEMENT), purchaseVolumeNeeded, clearanceVolumeNeeded);
     }
 
     private double salesSum(List<DailyEntry> entries) {
@@ -216,20 +234,49 @@ public class DashboardService {
         return Math.round(((current - previous) / previous) * 1000.0) / 10.0;
     }
 
-    private HealthScoreDto averageHealthScore(List<Branch> branches, LocalDate from, LocalDate to) {
-        List<HealthScoreDto> scores = branches.stream()
-                .map(b -> healthScoreService.calculate(b, from, to)).toList();
-        int n = scores.size();
-        double total = scores.stream().mapToDouble(HealthScoreDto::totalScore).average().orElse(0);
-        return new HealthScoreDto(
-                avg(scores, HealthScoreDto::salesScore), avg(scores, HealthScoreDto::profitScore),
-                avg(scores, HealthScoreDto::pricingScore), avg(scores, HealthScoreDto::purchasesScore),
-                avg(scores, HealthScoreDto::inventoryScore), avg(scores, HealthScoreDto::liquidityScore),
-                total, total >= 81 ? "ممتاز" : total >= 61 ? "جيد" : total >= 41 ? "مقبول" : "ضعيف"
-        );
+    /** درجة محور واحد من نتيجة BHI - صفر إن كان المحور غير متاح لنقص بياناته */
+    private double axisScoreOrZero(BhiResultDto bhi, BhiAxis axis) {
+        return bhi.axes().stream()
+                .filter(a -> a.axis() == axis && a.score() != null)
+                .mapToDouble(BhiResultDto.AxisScore::score)
+                .findFirst().orElse(0);
     }
 
-    private double avg(List<HealthScoreDto> scores, java.util.function.ToDoubleFunction<HealthScoreDto> f) {
-        return Math.round(scores.stream().mapToDouble(f).average().orElse(0) * 10) / 10.0;
+    /**
+     * يجمع الإشارات الموجودة أصلًا في طابور واحد مرتَّب: قرارات الشراء المفتوحة،
+     * رأس المال المجمَّد في الأصناف الراكدة، والبضاعة التي تقترب من انتهاء صلاحيتها.
+     * ليس محرك تحليل جديدًا - ترتيب فوق ما تحسبه المحركات القائمة.
+     */
+    private List<ExecutiveActionCenterDto.OpportunitySignalDto> buildTodaysOpportunities(
+            List<Item> items, List<Long> branchIds) {
+
+        List<OpportunityFeedService.Signal> signals = new ArrayList<>();
+
+        for (Decision d : decisionRepository.findByBranchIdIn(branchIds)) {
+            if (d.getStatus() != Decision.Status.OPEN) continue;
+            signals.add(opportunityFeedService.purchaseDecisionSignal(
+                    d.getItem().getName(), d.getFinancialImpact(),
+                    d.getCategory() == Decision.Category.RISK, d.getItem().getId()));
+        }
+
+        for (Item i : items) {
+            if (i.getMovementStatus() == Item.MovementStatus.STAGNANT && i.getInventoryValue() > 0) {
+                signals.add(opportunityFeedService.stagnantStockSignal(
+                        i.getName(), i.getInventoryValue(), i.getId()));
+            }
+            if (i.getExpiryDate() != null) {
+                long days = ChronoUnit.DAYS.between(LocalDate.now(), i.getExpiryDate());
+                if (days >= 0 && days <= EXPIRY_HORIZON_DAYS) {
+                    signals.add(opportunityFeedService.expirySignal(
+                            i.getName(), i.getInventoryValue(), (int) days, i.getId()));
+                }
+            }
+        }
+
+        return opportunityFeedService.rank(signals, MAX_HOME_SCREEN_SIGNALS).stream()
+                .map(sig -> new ExecutiveActionCenterDto.OpportunitySignalDto(
+                        sig.kind().name(), sig.title(), sig.detail(),
+                        sig.expectedImpact(), sig.suggestedAction(), sig.itemId()))
+                .toList();
     }
 }

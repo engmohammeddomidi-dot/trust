@@ -2,6 +2,7 @@ package com.trust.service;
 
 import com.trust.domain.*;
 import com.trust.repository.*;
+import com.trust.web.dto.BhiResultDto;
 import com.trust.web.dto.HealthScoreDto;
 import org.springframework.stereotype.Service;
 
@@ -19,25 +20,35 @@ public class HealthScoreService {
     private final DailyEntryRepository dailyEntryRepository;
     private final CategoryBenchmarkRepository benchmarkRepository;
     private final HealthScoreHistoryRepository historyRepository;
+    private final BhiService bhiService;
 
     public HealthScoreService(ItemRepository itemRepository,
                                DailyEntryRepository dailyEntryRepository,
                                CategoryBenchmarkRepository benchmarkRepository,
-                               HealthScoreHistoryRepository historyRepository) {
+                               HealthScoreHistoryRepository historyRepository,
+                               BhiService bhiService) {
         this.itemRepository = itemRepository;
         this.dailyEntryRepository = dailyEntryRepository;
         this.benchmarkRepository = benchmarkRepository;
         this.historyRepository = historyRepository;
+        this.bhiService = bhiService;
     }
 
     /**
-     * يحفظ لقطة يومية من مؤشر صحة الأعمال - يُستدعى من الجدولة اليومية حتى تتراكم بيانات
-     * تاريخية حقيقية لرسم اتجاه الأداء بدل بيانات وهمية (كانت health_score_history غير
-     * مُستخدَمة إطلاقًا قبل هذا التغيير رغم وجودها في المخطط منذ البداية).
+     * يحفظ لقطة يومية من مؤشر صحة الأعمال حتى تتراكم بيانات تاريخية حقيقية لرسم اتجاه
+     * الأداء بدل بيانات وهمية.
+     *
+     * منذ اعتماد نموذج BHI المرجعي، القيمة المحفوظة هي المؤشر العام لذلك النموذج - حتى
+     * لا يوجد رقمان مختلفان يحملان اسم "مؤشر صحة الأعمال" في المنصة. أعمدة المحاور الستة
+     * القديمة في هذا الجدول لم تُقرأ قط من أي مكان (كانت للكتابة فقط)، فتُركت كما هي.
+     * ملاحظة صريحة: منحنى الاتجاه سيُظهر قفزة لمرة واحدة عند نقطة التحوّل، لأن المنهجيتين
+     * لا تتفقان - وهذا مقبول لأن السلسلة عمرها أسابيع قليلة فقط.
      */
     public void snapshotToday(Branch branch) {
         LocalDate today = LocalDate.now();
-        HealthScoreDto score = calculate(branch, today.minusDays(30), today);
+        BhiResultDto bhi = bhiService.calculate(branch, today.minusDays(30), today);
+        if (bhi.totalScore() == null) return; // بيانات غير كافية - لا نحفظ رقمًا مختلقًا
+
         HealthScoreHistory snapshot = historyRepository.findByBranchIdAndScoreDate(branch.getId(), today)
                 .orElseGet(() -> {
                     HealthScoreHistory h = new HealthScoreHistory();
@@ -45,13 +56,7 @@ public class HealthScoreService {
                     h.setScoreDate(today);
                     return h;
                 });
-        snapshot.setSalesScore(score.salesScore());
-        snapshot.setProfitScore(score.profitScore());
-        snapshot.setPricingScore(score.pricingScore());
-        snapshot.setPurchasesScore(score.purchasesScore());
-        snapshot.setInventoryScore(score.inventoryScore());
-        snapshot.setLiquidityScore(score.liquidityScore());
-        snapshot.setTotalScore(score.totalScore());
+        snapshot.setTotalScore(round(bhi.totalScore()));
         historyRepository.save(snapshot);
     }
 

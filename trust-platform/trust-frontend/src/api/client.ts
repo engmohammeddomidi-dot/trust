@@ -53,15 +53,190 @@ apiClient.interceptors.response.use(
   }
 );
 
-export interface HealthScoreDto {
-  salesScore: number;
-  profitScore: number;
-  pricingScore: number;
-  purchasesScore: number;
-  inventoryScore: number;
-  liquidityScore: number;
-  totalScore: number;
+/** مؤشر واحد من مؤشرات صحة الأعمال الثلاثة عشر */
+export interface BhiIndicatorScore {
+  code: string;
+  labelAr: string;
+  available: boolean;
+  rawValue: number | null;
+  score: number | null;
+  band: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'WEAK' | 'UNAVAILABLE';
+  bandLabelAr: string;
+  /** شرح مقروء لموقع القيمة بين الحدود، أو سبب عدم توفّر البيانات */
+  explanation: string;
+}
+
+export interface BhiAxisScore {
+  axis: string;
+  labelAr: string;
+  /** null يعني أن المحور بلا أي مؤشر متاح - يُعرض ولا يُخفى، لكنه خارج الحساب */
+  score: number | null;
+  weight: number;
+  indicators: BhiIndicatorScore[];
+}
+
+/**
+ * نتيجة مؤشر صحة الأعمال (BHI) وفق النموذج المرجعي المعتمد.
+ * totalScore قد يكون null حين لا تكفي البيانات - نعرض حينها "غير كافٍ" لا صفرًا.
+ */
+export interface BhiResultDto {
+  totalScore: number | null;
   label: string;
+  availableIndicatorCount: number;
+  totalIndicatorCount: number;
+  axes: BhiAxisScore[];
+}
+
+export async function fetchBhi(branchId: number, from?: string, to?: string) {
+  const { data } = await apiClient.get<BhiResultDto>('/bhi', { params: { branchId, from, to } });
+  return data;
+}
+
+
+// ---------------- المصاريف التشغيلية الشهرية ----------------
+
+export interface MonthlyExpenseDto {
+  id: number | null;
+  month: string | null;
+  category: string;
+  categoryLabelAr: string;
+  unitAmount: number;
+  quantity: number;
+  total: number;
+  note: string | null;
+}
+
+export interface ExpenseCategoryDto {
+  code: string;
+  labelAr: string;
+}
+
+export async function fetchExpenses(branchId: number, month?: string): Promise<MonthlyExpenseDto[]> {
+  const { data } = await apiClient.get<MonthlyExpenseDto[]>('/expenses', { params: { branchId, month } });
+  return data;
+}
+
+export async function fetchExpenseCategories(): Promise<ExpenseCategoryDto[]> {
+  const { data } = await apiClient.get<ExpenseCategoryDto[]>('/expenses/categories');
+  return data;
+}
+
+export async function saveExpense(req: {
+  branchId: number; month: string; category: string;
+  unitAmount: number; quantity: number; note?: string;
+}): Promise<MonthlyExpenseDto> {
+  const { data } = await apiClient.put<MonthlyExpenseDto>('/expenses', req);
+  return data;
+}
+
+export async function deleteExpense(id: number, branchId: number): Promise<void> {
+  await apiClient.delete(`/expenses/${id}`, { params: { branchId } });
+}
+
+// ---------------- التوالف والجرد الفعلي ----------------
+
+export interface WasteRecordDto {
+  id: number;
+  itemId: number;
+  itemName: string;
+  wasteDate: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  reason: string;
+  note: string | null;
+}
+
+export interface StockCountDto {
+  id: number;
+  itemId: number;
+  itemName: string;
+  countDate: string;
+  expectedQuantity: number;
+  countedQuantity: number;
+  discrepancy: number;
+  note: string | null;
+}
+
+export async function fetchWaste(branchId: number): Promise<WasteRecordDto[]> {
+  const { data } = await apiClient.get<WasteRecordDto[]>('/waste', { params: { branchId } });
+  return data;
+}
+
+export async function recordWaste(req: {
+  branchId: number; itemId: number; quantity: number; reason: string; note?: string;
+}): Promise<WasteRecordDto> {
+  const { data } = await apiClient.post<WasteRecordDto>('/waste', req);
+  return data;
+}
+
+export async function fetchStockCounts(branchId: number): Promise<StockCountDto[]> {
+  const { data } = await apiClient.get<StockCountDto[]>('/stock-counts', { params: { branchId } });
+  return data;
+}
+
+export async function recordStockCount(req: {
+  branchId: number; itemId: number; countedQuantity: number; note?: string;
+}): Promise<StockCountDto> {
+  const { data } = await apiClient.post<StockCountDto>('/stock-counts', req);
+  return data;
+}
+
+// ---------------- معايرة نموذج BHI (مشرف المنصة) ----------------
+
+export interface BhiIndicatorConfig {
+  code: string;
+  labelAr: string;
+  axis: string;
+  direction: 'HIGHER_BETTER' | 'LOWER_BETTER';
+  unit: string;
+  weak: number;
+  medium: number;
+  excellent: number;
+  overridden: boolean;
+}
+
+export interface BhiAxisConfig {
+  axis: string;
+  labelAr: string;
+  weight: number;
+  overridden: boolean;
+}
+
+export interface BhiConfigDto {
+  category: string;
+  indicators: BhiIndicatorConfig[];
+  axes: BhiAxisConfig[];
+  axisWeightSum: number;
+}
+
+export async function fetchBhiConfig(category: string): Promise<BhiConfigDto> {
+  const { data } = await apiClient.get<BhiConfigDto>('/admin/bhi-config', { params: { category } });
+  return data;
+}
+
+export async function saveBhiThreshold(req: {
+  category: string; code: string; weak: number; medium: number; excellent: number;
+}): Promise<BhiConfigDto> {
+  const { data } = await apiClient.put<BhiConfigDto>('/admin/bhi-config/thresholds', req);
+  return data;
+}
+
+export async function saveBhiWeight(req: {
+  category: string; axis: string; weight: number;
+}): Promise<BhiConfigDto> {
+  const { data } = await apiClient.put<BhiConfigDto>('/admin/bhi-config/weights', req);
+  return data;
+}
+
+export async function resetBhiThreshold(code: string, category: string): Promise<BhiConfigDto> {
+  const { data } = await apiClient.delete<BhiConfigDto>(`/admin/bhi-config/thresholds/${code}`, { params: { category } });
+  return data;
+}
+
+export async function resetBhiWeight(axis: string, category: string): Promise<BhiConfigDto> {
+  const { data } = await apiClient.delete<BhiConfigDto>(`/admin/bhi-config/weights/${axis}`, { params: { category } });
+  return data;
 }
 
 export interface RecommendationDto {
@@ -121,10 +296,21 @@ export interface ExecutiveAlertDto {
   count: number;
 }
 
+export interface OpportunitySignalDto {
+  kind: 'RISK' | 'OPPORTUNITY';
+  title: string;
+  detail: string;
+  expectedImpact: number;
+  suggestedAction: string | null;
+  itemId: number | null;
+}
+
 export interface ExecutiveActionCenterDto {
   topProfitabilityItems: TopItemDto[];
   topAccumulatedCostItems: TopItemDto[];
   alerts: ExecutiveAlertDto[];
+  /** طابور فرص اليوم الموحَّد، مرتَّب بالأثر ومحدود بخمسة */
+  todaysOpportunities: OpportunitySignalDto[];
 }
 
 export interface MonthlyImpactLedgerDto {
@@ -144,7 +330,7 @@ export interface DashboardResponse {
   marginChangePercent: number;
   availableLiquidity: number;
   liquidityChangePercent: number;
-  healthScore: HealthScoreDto;
+  healthScore: BhiResultDto;
   salesTrend: { date: string; sales: number }[];
   topRecommendations: RecommendationDto[];
   inventoryBreakdown: Record<string, number>;
@@ -258,6 +444,8 @@ export interface OrganizationDto {
   id: number;
   name: string;
   category: string;
+  /** null يعني لم تُسجَّل بعد - مؤشر نسبة الدين يبقى "غير متاح" */
+  equity: number | null;
 }
 
 export interface BranchDto {
@@ -273,8 +461,8 @@ export async function fetchOrganization(id: number): Promise<OrganizationDto> {
   return data;
 }
 
-export async function updateOrganization(id: number, name: string): Promise<OrganizationDto> {
-  const { data } = await apiClient.put<OrganizationDto>(`/organizations/${id}`, { name });
+export async function updateOrganization(id: number, name: string, equity?: number | null): Promise<OrganizationDto> {
+  const { data } = await apiClient.put<OrganizationDto>(`/organizations/${id}`, { name, equity: equity ?? null });
   return data;
 }
 
@@ -373,6 +561,21 @@ export interface DecisionDto {
   createdAt: string;
   resolvedAt: string | null;
   actualOutcome: string | null;
+  ifIgnoredSummary: string | null;
+  constraintsSummary: string | null;
+  confidenceReasons: string | null;
+  alternatives: DecisionAlternative[];
+}
+
+export interface DecisionAlternative {
+  key: string;
+  label: string;
+  quantity: number;
+  orderValue: number;
+  coverageDays: number;
+  recommended: boolean;
+  liquidityLimited: boolean;
+  tradeOff: string;
 }
 
 export async function fetchDecisions(branchId: number, status?: DecisionDto['status']): Promise<DecisionDto[]> {
@@ -438,7 +641,12 @@ export type GoalType =
 
 export interface GoalDto {
   type: GoalType;
+  labelAr: string;
+  pillar: 'PROFITABILITY' | 'WORKING_CAPITAL' | 'OPERATIONAL_EFFICIENCY';
+  pillarLabelAr: string;
   priority: number;
+  /** false يعني أن الهدف مسجَّل ولا يؤثّر في أي محرك بعد */
+  influencesEngine: boolean;
 }
 
 export async function fetchGoals(organizationId: number): Promise<GoalDto[]> {
@@ -789,6 +997,19 @@ export interface SupplierPortalPurchaseDto {
   purchaseDate: string;
   expectedDeliveryDate: string;
   receivedDate: string | null;
+  supplierResponse: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  supplierPromisedDate: string | null;
+  supplierRejectionReason: string | null;
+}
+
+export async function acceptSupplierOrder(purchaseId: number, promisedDate?: string) {
+  const { data } = await apiClient.patch(`/supplier/orders/${purchaseId}/accept`, { promisedDate: promisedDate ?? null });
+  return data;
+}
+
+export async function rejectSupplierOrder(purchaseId: number, reason: string) {
+  const { data } = await apiClient.patch(`/supplier/orders/${purchaseId}/reject`, { reason });
+  return data;
 }
 
 export interface SupplierPortalOverviewDto {

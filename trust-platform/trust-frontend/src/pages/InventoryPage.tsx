@@ -3,6 +3,7 @@ import { Sidebar } from '../components/Sidebar';
 import { AddItemModal } from '../components/AddItemModal';
 import { ImportItemsCsvModal } from '../components/ImportItemsCsvModal';
 import { fetchItems, fetchSuppliers, linkItemSupplier, type ItemDto, type SupplierDto } from '../api/client';
+import { InventoryQualityCard } from '../components/InventoryQualityCard';
 import { requireBranchId, requireOrganizationId } from '../auth/session';
 
 const TABS: { key: 'ALL' | ItemDto['movementStatus']; label: string }[] = [
@@ -70,7 +71,7 @@ export function InventoryPage() {
         <div className="page-header">
           <div className="page-title">المخزون</div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn-secondary" onClick={() => setShowImportModal(true)}>⬆ استيراد CSV</button>
+            <button className="btn-secondary" onClick={() => setShowImportModal(true)}>استيراد CSV</button>
             <button className="btn-primary" onClick={() => setShowAddModal(true)}>+ إضافة صنف</button>
           </div>
         </div>
@@ -158,6 +159,12 @@ export function InventoryPage() {
             </table>
           )}
         </div>
+
+        {items !== null && items.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <InventoryQualityCard branchId={requireBranchId()} items={items} onChanged={load} />
+          </div>
+        )}
       </main>
 
       {showAddModal && (

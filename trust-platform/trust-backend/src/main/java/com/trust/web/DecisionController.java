@@ -18,6 +18,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @RestController
@@ -113,6 +117,18 @@ public class DecisionController {
                 supplier != null ? supplier.getId() : null, supplier != null ? supplier.getName() : null,
                 d.getType().name(), d.getCategory().name(), d.getStatus().name(), d.getSuggestedQuantity(), d.getApprovedQuantity(),
                 d.getReasonSummary(), d.getConfidenceScore(), d.getFinancialImpact(), d.getCreatedAt(), d.getResolvedAt(),
-                d.getActualOutcome());
+                d.getActualOutcome(),
+                d.getIfIgnoredSummary(), d.getConstraintsSummary(), d.getConfidenceReasons(),
+                parseAlternatives(d.getAlternativesJson()));
+    }
+
+    /** البدائل مخزَّنة JSON؛ تلفها لا يجب أن يُسقط عرض القرار كله */
+    private static List<DecisionDto.Alternative> parseAlternatives(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return new ObjectMapper().readValue(json, new TypeReference<List<DecisionDto.Alternative>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

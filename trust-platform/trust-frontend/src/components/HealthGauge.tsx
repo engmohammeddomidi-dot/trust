@@ -6,8 +6,9 @@ function bandColor(score: number): string {
   return 'var(--accent-red)';
 }
 
-export function HealthGauge({ score, label }: { score: number; label: string }) {
-  const pct = Math.max(0, Math.min(100, score));
+export function HealthGauge({ score, label }: { score: number | null; label: string }) {
+  // درجة غير محسوبة تُعرض شرطة لا صفرًا - الصفر رقم مختلق يوحي بأداء سيئ
+  const pct = score === null ? 0 : Math.max(0, Math.min(100, score));
   const color = bandColor(pct);
   const data = [{ value: pct }, { value: 100 - pct }];
 
@@ -37,7 +38,7 @@ export function HealthGauge({ score, label }: { score: number; label: string }) 
             alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
           }}
         >
-          <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{Math.round(pct)}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{score === null ? '—' : Math.round(pct)}</div>
           <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>من 100</div>
         </div>
       </div>

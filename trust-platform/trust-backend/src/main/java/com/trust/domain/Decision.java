@@ -78,6 +78,22 @@ public class Decision {
     @Column(nullable = false)
     private double financialImpact;
 
+    /** "لو تجاهلت" - الوجه الآخر للتوصية، بلا هذا السطر تُقرأ البطاقة كإعلان لا كنصيحة */
+    @Column(length = 500)
+    private String ifIgnoredSummary;
+
+    /** القيود التي راعاها المحرك (سقف السيولة، سياسة المورّد) - مفصولة بنقطة */
+    @Column(length = 700)
+    private String constraintsSummary;
+
+    /** أسباب درجة الثقة، حتى لا تكون نسبة مجرّدة غير قابلة للمساءلة */
+    @Column(length = 700)
+    private String confidenceReasons;
+
+    /** البدائل المعروضة على البطاقة، مسلسلة JSON - تُقرأ مع القرار ولا يُستعلَم عنها وحدها */
+    @Column(length = 2000)
+    private String alternativesJson;
+
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime resolvedAt;
 

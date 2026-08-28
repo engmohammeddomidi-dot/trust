@@ -10,14 +10,17 @@ export const mockDashboard: DashboardResponse = {
   availableLiquidity: 415680,
   liquidityChangePercent: -6.3,
   healthScore: {
-    salesScore: 80,
-    profitScore: 82,
-    pricingScore: 81,
-    purchasesScore: 72,
-    inventoryScore: 65,
-    liquidityScore: 78,
-    totalScore: 78,
-    label: 'جيد',
+    totalScore: 77.2,
+    label: 'جيدة',
+    availableIndicatorCount: 7,
+    totalIndicatorCount: 13,
+    axes: [
+      { axis: 'PROFITABILITY', labelAr: 'الربحية', score: 83.1, weight: 0.3, indicators: [] },
+      { axis: 'LIQUIDITY', labelAr: 'السيولة', score: 67.9, weight: 0.2, indicators: [] },
+      { axis: 'OPERATIONAL_EFFICIENCY', labelAr: 'الكفاءة التشغيلية', score: 83.7, weight: 0.2, indicators: [] },
+      { axis: 'INVENTORY_MANAGEMENT', labelAr: 'إدارة المخزون', score: 65.9, weight: 0.15, indicators: [] },
+      { axis: 'RECEIVABLES_DEBT', labelAr: 'الذمم والمديونية', score: 80.4, weight: 0.15, indicators: [] },
+    ],
   },
   salesTrend: [
     { date: '2026-06-24', sales: 68000 },
@@ -95,5 +98,6 @@ export const mockDashboard: DashboardResponse = {
       { type: 'LOW_STOCK', label: 'تنبيه مخزون منخفض', count: 7 },
       { type: 'SLOW_MOVING', label: 'أصناف بطيئة الحركة', count: 12 },
     ],
+    todaysOpportunities: [],
   },
 };

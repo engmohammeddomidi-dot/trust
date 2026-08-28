@@ -23,6 +23,12 @@ public class Purchase {
      */
     public enum Status { SENT, RECEIVED }
 
+    /**
+     * ردّ المورّد على الأمر. منفصل عن Status عمدًا: موافقة المورّد التزام بالتوريد،
+     * لا استلام فعلي - خلطهما كان سيجعل الموافقة تُحدِث المخزون قبل وصول البضاعة.
+     */
+    public enum SupplierResponse { PENDING, ACCEPTED, REJECTED }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -68,6 +74,23 @@ public class Purchase {
 
     /** true إن اختلفت الكمية المستلمة عن المطلوبة، أو لم يتطابق السعر، أو وُجد تلف */
     private boolean hasDiscrepancy;
+
+    /** تاريخ استحقاق السداد للمورّد - يُشتق عادةً من مهلة الائتمان في بطاقة المورّد */
+    private LocalDate paymentDueDate;
+
+    /** تاريخ السداد الفعلي - فارغ يعني لم تُسدَّد بعد */
+    private LocalDate paidOnDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SupplierResponse supplierResponse = SupplierResponse.PENDING;
+
+    private LocalDate supplierRespondedAt;
+
+    /** التاريخ الذي التزم به المورّد للتسليم - قد يخالف التاريخ المتوقَّع من مهلة التوريد */
+    private LocalDate supplierPromisedDate;
+
+    private String supplierRejectionReason;
 
     public double getTotalCost() {
         return quantity * costPrice;

@@ -181,3 +181,282 @@ After the app was deployed (combined Docker image, Neon Postgres, Render — see
 - 5 of 7 `Goal` types are still inert (unchanged from the Procurement Decision Engine phase — no new engines were added this phase to give them real effect).
 - The chunk-size build warning (`vite build` — main bundle ~780KB) was not addressed; no code-splitting has been introduced.
 5. If continuing the Procurement Decision Engine work, the highest-value next pieces per the PM's own emphasis are: (a) a real Decision Center home-screen ("ماذا يجب أن أفعل اليوم؟") that surfaces open decisions from the Dashboard instead of requiring a separate page visit, (b) a second decision type (pricing is the most natural next one, since `RecommendationEngineService.ADJUST_PRICE` already has the underlying logic — the work would be porting it to the `Decision` model's explainability format), (c) only build out the remaining 5 Goals once their corresponding analysis engines exist — don't wire numbers to nothing.
+
+## BHI — Business Health Index rebuilt from the PM's reference model (2026-08-28)
+
+The PM sent two files: an xlsx defining a formal **BHI (Business Health Index)** methodology, and a screenshot of a single-store unit-economics/revenue model. Only the xlsx was actioned this session (user: "focus on the first part only", then "improvise where needed" — so the open questions below were decided rather than escalated).
+
+**The scoring math was reverse-engineered exactly, not approximated.** Normalization is piecewise-linear between three anchors — weak→40, medium→70, excellent→100, extrapolating below weak, capped at 100 above excellent; direction (`أعلى أفضل`/`أقل أفضل`) flips the interpolation. Aggregation is two-level: **equal weight within an axis** (the sheet's "الوزن داخل المحور" column actually holds the direction text, not a weight — confirmed by arithmetic) and **explicit weights across axes** (0.30/0.20/0.20/0.15/0.15). All 13 indicators plus the overall 77.208451 and every axis score reproduce to 4 decimals; these are locked in as golden tests (`BhiScoringEngineTest`, `BhiAggregationTest`).
+
+**What shipped**
+- `BhiScoringEngine` — pure, no DB access, so it can be verified literally against the reference sheet. Also does multi-branch averaging.
+- `BhiMetricsCalculator` — derives raw indicator values; every one returns `null` (not 0, not Infinity) when its data is missing.
+- `BhiService` — repositories → raw inputs → scores; thresholds/weights read from sparse override tables.
+- `BhiThreshold` / `BhiAxisWeight` + `V8` — **override-only tables**, no seed rows. Defaults live on the `BhiIndicatorCode`/`BhiAxis` enums (same `orElseGet` pattern as `CategoryBenchmark`), so a new `Category` works with zero rows instead of needing 13 × N seeds.
+- `GET /api/bhi?branchId=` — full breakdown with a plain-language explanation per indicator.
+- Frontend: `HealthRadar` now maps over server-supplied axes (no hardcoded six), new `BhiBreakdown` drill-down, `HealthGauge` renders `—` for an uncomputed score.
+
+**Cutover — one health number, deliberately.** Three call sites now serve BHI: `DashboardService.healthScore`, `HealthScoreService.snapshotToday` (writes the BHI total into `HealthScoreHistory.totalScore`), and **`AdminController.avgHealthScore`**, which feeds the platform KPI, the city breakdown, the org leaderboard and the health distribution. The admin one was nearly missed — grepping `HealthScoreHistory` showed only `totalScore` was read, but `AdminController` calls `healthScoreService.calculate(...)` *live*, bypassing history. Had it been left, platform admins would have seen legacy 6-axis scores while owners saw BHI. `AdminHealthDistributionDto`'s band cuts also moved from the retired 61/41 to BHI's 70/55 so they match `BhiScoringEngine.classify`.
+
+Verified live that the two agree: owner dashboard `93.88931683479217` ≡ `GET /api/bhi` for the same branch, and the admin leaderboard shows `93.9` for that org. `HealthScoreService.calculate` still exists for `RecommendationSchedulerService`. **The trend line will show a one-time step at cutover** — the two methodologies don't agree; accepted because the series is only weeks old.
+
+**Improvised decisions** (reference model was silent; PM should confirm):
+1. **Classification bands** — sheet gives one point (77.21 → "جيدة"). Chose cuts from the same anchors as the scoring scale: ≥85 ممتازة, ≥70 جيدة, ≥55 مقبولة, else ضعيفة.
+2. **Below the weak threshold** — no example in the sheet exercises it. Linear extrapolation at the weak→medium slope, floored at 0.
+3. **A real inconsistency in the sheet's inputs** — inventory days (38) and turnover (7.5, i.e. 48.7 days) are entered independently and contradict each other. Here both derive from the same COGS/inventory data so they always agree; CCC = inventoryDays + DSO − DPO.
+
+**Two defects found by live testing, not code review** (the discipline paid off again):
+1. **Period length was calendar days, not recorded days.** The demo branch has 7 daily entries in a 30-day window; dividing by 30 assumed 23 zero-sales days, understating the daily rate ~4× and inflating DSO 3.65→15.65 and DPO. Now uses entry count, matching the convention already in `HealthScoreService.calculatePurchasesScore`. Sales growth also switched to comparing **daily rates**, so unequal window lengths don't read as a sales collapse.
+2. **An axis with no data vanished from the response entirely.** Real case: `OPERATIONAL_EFFICIENCY` disappeared because no prior-period entries exist, so the owner couldn't tell a whole axis went unassessed. `AxisScore.score` is now nullable — the axis is listed as `غير مُقيَّم`, still excluded from the weighted total.
+
+**Data gap — 7 of 13 indicators computable today** (verified live: the demo branch scores on 6, since sales growth needs a prior period):
+- *Available now*: gross margin, current ratio, cash ratio, CCC, sales growth, inventory turnover, DSO.
+- *Needs a `MonthlyExpense` entity*: net profit margin + opex ratio. Highest priority — الربحية carries weight 0.30 and currently rests on one indicator. Note `DailyEntry.totalProfit` is **gross**; net is not a formula tweak. The PM's screenshot already specifies this input (manager 5000, 3× shelf staff 6000, electricity 2500, rent 3000, tech 200, sundries 100 = 16,800) and it cross-checks: those figures give exactly the 4% net margin and 0.16 opex ratio in the xlsx.
+- *Needs new features*: waste log (نسبة الهدر), physical stock count (دقة الجرد), equity field (نسبة الدين). `PAYMENT_EFFICIENCY` needs only `dueDate`/`paidOn` on `Purchase` — cheap.
+
+**Verification**: 84/84 backend tests green (was 15; +69 BHI). `tsc --noEmit` clean, `vite build` clean. Live-verified end-to-end against a restarted backend — every number hand-recomputed from the API's own inputs (turnover 371.3 = 400,617.27 × 365/7 ÷ 56,260; current ratio 0.77 = (415,680+56,260+312,400)/1,019,080; DSO 3.65; CCC −13.17).
+
+**Not verified / known gaps**
+- **V8 was NOT run against real Postgres** — Docker daemon was down. Mitigation: `BhiMigrationMatchesEntitiesTest` binds every Hibernate-derived column to the V8 script, and was proven to fail when a column name is altered. Still, run the real container before relying on the `postgres` profile.
+- **Full Flyway-on-H2 validation is impossible**: `V7` hardcodes `app_users_role_check`, a constraint name Postgres generates and H2 does not. V1–V6 apply cleanly on H2. Worth fixing V7 to make that check runnable.
+- **Demo data makes turnover absurd (371×/year)** — 6 items, 56K inventory against ~400K monthly COGS. The math is right; the seed data isn't shaped like a real supermarket. Seeding realistic inventory depth would make the dashboard demo honest.
+- No admin UI yet for editing BHI thresholds/weights — the tables and the override lookup exist, `AdminBenchmarksPage` isn't wired to them.
+- The screenshot (unit economics / 4 commission streams) is untouched. Its بند 1 savings taxonomy is a spec for the Impact Ledger and بند 3 is supplier-rebate revenue — both buildable; the 30% commission + before/after **subscription** P&L conflicts with the standing no-monetization rule and needs a decision.
+
+### Follow-ups from the review pass (same session)
+
+Two more defects, both caught by checking rather than assuming:
+
+3. **Zero sales read as missing data.** `SALES_GROWTH` returned `null` when current sales were 0, because the rate helper treated a zero *numerator* as unavailable. A total sales collapse — the loudest signal that axis exists to catch — was being reported as "غير متاح". Now only a zero *denominator* means unavailable; a collapse reads as −100%.
+4. **A dead parameter.** `assembleInputs(..., int calendarDays)` stopped reading that argument once the period switched to entry counts. Removed rather than left to mislead.
+
+**Process note worth remembering:** a stale JVM served two verification rounds. An earlier `taskkill` sat after a `timeout`-ed maven command that exited 143, so it never ran; port 8080 stayed bound and the "restarted" backend silently failed to bind while the old process kept answering. It was caught only because the admin health distribution (good=1, medium=1) was arithmetically impossible under the new 70/55 bands for scores of 64.1 and 55.2 — it matched the old 61/41 cuts exactly. **When a live check disagrees with the source, confirm which process is actually answering before editing anything.**
+
+**Demo-data caveat, now visible on the dashboard:** both seeded orgs score 93.9 and 100.0, and `dailyPerformanceSummary.inventoryTurnoverRatePercent` jumped from ~65 to 100. Nothing is wrong with the math — the seed has 6 items / ~56K inventory against ~400K monthly COGS, so turnover (371×/year) pins every inventory indicator at the ceiling. Seeding realistic inventory depth is now the single highest-value fix for making the demo credible.
+
+## BHI phase 2 — all 13 indicators live (2026-08-28, same session)
+
+User asked to carry the remaining plan to completion. Everything listed as "planned" for BHI is now built, wired, and verified; **13 of 13 indicators compute on real data** where before it was 7.
+
+### New data sources (each was a "غير متاح" indicator)
+
+| Source | Unlocks | Notes |
+|---|---|---|
+| `MonthlyExpense` + `/api/expenses` (V9) | هامش صافي الربح، نسبة المصاريف | Quantity × unit-amount mirrors the PM's expense table (3 shelf staff × 2000) so the shopkeeper doesn't multiply in their head |
+| `WasteRecord` + `/api/waste` (V10) | نسبة الهدر | Recording waste **deducts** the quantity from the item — otherwise the book stays above reality |
+| `StockCount` + `/api/stock-counts` (V10) | دقة الجرد | A count **corrects** book to counted, else the same variance repeats every count |
+| `Purchase.paymentDueDate` / `paidOnDate` (V10) | كفاءة السداد | |
+| `Organization.equity` (V10) | نسبة الدين إلى حقوق الملكية | Nullable — blank keeps the indicator honestly unavailable |
+
+### The proration subtlety worth remembering
+
+Operating expenses accrue on **calendar** days, but the BHI period is measured in **recorded-entry** days. Comparing a full month of expenses against a week of sales would show a fake negative net margin. `MonthlyExpenseService.proratedForPeriod` scales by `recordedDays / 30`. Reference check: 105,000 sales / 16,800 expenses = 0.16; at 7 recorded days that's 24,500 / 3,920 — still exactly 0.16.
+
+### Judgement calls in the new indicators
+
+- **An unpaid invoice past its due date counts as late, not as missing data.** Excluding it would make a defaulter look punctual purely for never paying. An invoice not yet due *is* excluded — its outcome is genuinely unknown.
+- **A stock count with zero variance scores 100%, not "unavailable".** No count at all is missing data; a clean count is excellent performance. Different things.
+- **Waste with no inventory to measure against** returns null rather than dividing by zero.
+
+### Admin calibration — `/admin/bhi-config`
+
+New page + `AdminBhiConfigController` (PLATFORM_ADMIN only, verified an OWNER gets **403**). Edits both indicator thresholds and axis weights per `Category`, marks each value معدَّل vs افتراضي, and can reset to the reference model. Warns when axis weights don't sum to 1. This is what turns the model from constants-in-code into something the product team owns — a pharmacy's "excellent turnover" is not a supermarket's.
+
+Verified live: raising the turnover excellent bar 12 → 20 moved that indicator 80.37 → 73.46 **and** changed its explanation text; reset restored 80.37 exactly.
+
+### Demo seed rebuilt to the actual target persona
+
+The old seed did ~85,000 ₪/day — a hypermarket, not the corner shop this product is for — with 33.1% gross margin (above every "excellent" threshold) and 6 items worth 56K against ~400K monthly COGS. **That is why every indicator pinned at 100.** Rebuilt:
+
+- ~3,500 ₪/day (~105,000/month), matching the PM's own unit-economics model
+- 22% gross margin (realistic for a grocery; 33.1% was unreachable-high)
+- **60 days** of daily entries, not 7 — BHI compares the last 30 to the prior 30, so 7 days left sales-growth permanently unavailable
+- Inventory ~110K at cost → turnover ~9×/yr, while rice/olive-oil stay low so the purchase-decision engine still fires
+- Expenses, waste, stock counts, purchase due/paid dates, and equity all seeded
+- Purchases spread across 25 days so both the dashboard's 7-day window and the detail 30-day window see invoices
+
+Result: BHI **78.07** over 7 days and **82.04** over 31 days, 13/13 both, with a genuine spread (68.70–100) instead of a wall of 100s.
+
+### Verification
+
+105/105 backend tests (was 15 at session start; +90). `tsc --noEmit` and `vite build` clean. Live-verified end to end, including that **writes move the right axis and only that axis**: recording waste moved إدارة المخزون 74.99 → 74.63 leaving الربحية untouched; raising rent 3000 → 6000 moved الربحية 86.83 → 84.54 leaving إدارة المخزون untouched. Browser-verified the dashboard radar (5 axes), the drill-down (scores + explanations + a greyed unavailable indicator showing its reason), the inventory waste/count card, the Settings expense table, and the admin calibration page. Zero console errors.
+
+### Still open
+
+- **No migration has been run against real Postgres this session** — the Docker daemon is down. `BhiMigrationMatchesEntitiesTest` now binds every Hibernate-derived column of all five new tables (plus the three added columns) to V8/V9/V10, and was proven to fail when a column name drifts — but that is not the same as applying the migrations. **Run the container before deploying.**
+- Full Flyway-on-H2 validation remains impossible because **V7 hardcodes `app_users_role_check`**, a constraint name Postgres generates and H2 does not. V1–V6 apply cleanly on H2. V7 must not be edited (it is already applied in the deployed Neon database — changing it would break Flyway's checksum), so the fix is a new migration that normalises the constraint, not an edit.
+- The screenshot's unit-economics model is still untouched; the 30% commission / before-after **subscription** P&L still conflicts with the standing no-monetization rule and needs your decision.
+- ~~Second demo org was not rescaled~~ — **fixed**, see below.
+
+### Review-pass corrections (same session)
+
+Four issues the review caught after the phase-2 work looked done:
+
+1. **The pharmacy demo org was still unscaled — and it showed on the one screen built for comparison.** With a single daily entry, `periodDays = 1`, so inventory turnover annualised one day of COGS and pinned إدارة المخزون at 100; the admin leaderboard read **صيدلية الشفاء 100.0 vs سوبرماركت 82.0**, contradicting the owner dashboard right after the rescale was supposed to fix exactly that. Rebuilt it the same way (60 days of entries, 28% pharmacy margin, inventory ~68K at cost, plus expenses/waste/counts/payment dates/equity). Now **84.3 vs 82.0** — comparable, and both on 13/13.
+2. **`equityOf` re-fetched a branch already in hand.** `withExternalSources` now takes the `Branch` and reads `getOrganization().getEquity()` directly; `BranchRepository` dropped from `BhiService` entirely. Matters because `AdminController` calls `averageAcross` once per org, once per city, and once platform-wide.
+3. **`app.seed.enabled=false` in the migration test was inert** — `DataSeeder` guards only on `organizationRepository.count() > 0`, there is no such property. Removed rather than left as a false claim.
+4. **Waste and stock-count treated "no data" inconsistently.** A zero-variance count scores 100 (an explicit act with a clean result) while zero waste records stays "غير متاح" (genuinely ambiguous — no waste, or nobody logged it?). That asymmetry is deliberate but was undocumented; the reasoning is now a comment next to the code.
+
+**Self-inflicted regression worth noting:** deleting `equityOf` with a text slice also removed the four indicator methods next to it (`paymentEfficiency`, `debtToEquity`, `wasteRatio`, `stockAccuracy`) — the slice's end-marker no longer matched after an earlier rename, so it ran on to the next method. Caught immediately by the compiler and restored. A reminder that range-based text edits over source are fragile once the file has moved on.
+
+**Tenant isolation re-verified on every new endpoint** (this is a multi-tenant app; new controllers are the usual place IDOR creeps in):
+
+| Request | Result |
+|---|---|
+| org-1 owner → `/api/bhi?branchId=2` | 403 |
+| org-1 owner → `/api/expenses?branchId=2` | 403 |
+| org-1 owner → `POST /api/waste` on branch 2 | 403 |
+| owner → `/api/admin/bhi-config` | 403 |
+| platform admin → `/api/bhi?branchId=2` | 403 (correct — admins hold no branch membership; they read aggregates via `/api/admin/overview`) |
+| unauthenticated → `/api/bhi` | 401 |
+| org-1 owner → own branch 1 | 200 |
+
+Owner dashboard and `/api/bhi` still return byte-identical scores for the same window (`78.07041105048971`).
+
+## Remaining vision-doc items — functional pass (2026-08-28, same session)
+
+User: "proceed with other items mentioned in the md so the rest of screens and features are working and functional (skip the auth thing for now)". Applied that filter literally — non-screen work was deferred, listed at the end.
+
+### Supplier Portal is no longer a dead end (was the only truly non-functional screen)
+
+`Purchase` gains `supplierResponse` (PENDING/ACCEPTED/REJECTED), `supplierRespondedAt`, `supplierPromisedDate`, `supplierRejectionReason` (**V11**). New `PATCH /api/supplier/orders/{id}/accept|reject`, and a response cell in the portal table with a promised-date picker and a rejection-reason field. Accepting notifies the buying org (SUCCESS), rejecting notifies as WARNING.
+
+**Design choice:** a separate `supplierResponse` column rather than new `Purchase.Status` values. Supplier acceptance is a *commitment to supply*, not a receipt — merging them would have made acceptance update inventory before goods arrived. It also avoids editing V3's already-applied check constraint.
+
+**The security shape changed and needed explicit handling.** `SupplierPortalController.overview` is safe with no tenant guard because every query is scoped by `principal.email()` and nothing is client-supplied. An accept/reject endpoint takes a `purchaseId` *from the client*, which destroys that property. `SupplierPortalService.requireOwnPendingOrder` verifies the purchase's supplier email matches the caller's, and a **nonexistent id returns 403, not 404**, so the endpoint can't be used to probe which ids exist. Verified live:
+
+| Request | Result |
+|---|---|
+| supplier accepts own SENT order | 200, buyer notified |
+| responding twice | 409 |
+| responding to a RECEIVED order | 409 |
+| owner (not the supplier) responds | 403 |
+| nonexistent purchase id | 403 (no existence leak) |
+
+### A3 — the decision card now answers both questions
+
+`Decision` gains `ifIgnoredSummary`, `constraintsSummary`, `confidenceReasons` (**V12**), all derived from values the engine already computed — no new data source. The card shows an amber "لو تجاهلت" line, the constraints actually applied, and bullet reasons behind the confidence number instead of a bare percentage. When nothing constrained the order that is *stated*, because an empty section doesn't prove the check ran.
+
+### B2 — alternatives, respecting the same caps
+
+`DecisionAlternativeBuilder` offers conservative / recommended / extended around the engine's quantity. **Every option passes through the same liquidity cap the primary suggestion does** — offering an option the organization's own policy forbids would be worse than offering none. When the cap collapses options to the same quantity they are deduplicated: three identical choices fake an agency the owner doesn't have.
+
+**Approving an alternative routes through the existing approve/modify path**, so it creates a real `Purchase(SENT)`. Verified in the browser: choosing the conservative option for olive oil created purchase id=19 for 139 units and set the decision to MODIFIED/approvedQuantity=139.
+
+### B5 — goals are honest now
+
+Seven goals grouped under the three strategic pillars, and the five that reach no engine are badged **«لا يؤثّر بعد»**. Deliberately did *not* wire the inert five into the engine — the vision doc and PROGRESS.md both say not to attach numbers to engines that don't exist; doing so would widen the credibility gap, not close it.
+
+### A2 + B3 — "فرص اليوم" replaces hunting across screens
+
+`OpportunityFeedService` merges three signal types into one queue ranked by impact × urgency and **capped at 5** (the doc's own rule — fifty alerts means the app gets closed): open purchase decisions, capital tied up in stagnant stock, and near-expiry goods. Each carries a suggested action, and the stagnant/expiry ones point at the group-order route — the approved revenue path. Verified live: 5 signals, correctly ordered by score (stagnant juice 9,600 > chocolate 4,778 > oil 1,790 > cheese 1,600 > rice 1,004).
+
+**A2 was applied narrowly on purpose.** "توصيات" appears in 9 components, but `Recommendation` is the *legacy rule engine* — a separate feature with its own page. Relabelling those too would have made the UI less coherent, so only the Decision-backed surfaces got the الفرص framing.
+
+### A real engine defect surfaced by the earlier rescale
+
+`SalesEstimator` estimated demand as **a fixed percentage of stock on hand** (15%/day for FAST). That is circular: coverage days come out constant regardless of stock, so the reorder engine could never distinguish an overstocked item from a scarce one. The inventory rescale made it visible — it claimed 2,800 frozen chickens would run out in 1.3 days in a shop taking 3,500 ₪/day.
+
+Replaced with an estimate **anchored to actual COGS** from daily entries, allocated across items by movement class.
+
+**First attempt was wrong and a weak test let it pass.** Allocating by *inventory value* reproduces the circularity in a new form — the quantity cancels out of the coverage formula, giving every item in a movement class identical coverage. The test only used a single item, so it passed. Strengthened it to two items of the same class (one stocked, one scarce), watched it fail, then switched allocation to movement class alone. Coverage now responds to stock while the total still ties to real sales. Decisions went from implausible (1.3 days on 2,800 units) to sensible: overstocked chicken generates nothing, scarce oil and chocolate do.
+
+### Verification
+
+**153/153 backend tests** (115 → 153 this pass), `tsc --noEmit` and `vite build` clean, zero console errors across dashboard / decisions / settings / supplier portal. Full loop exercised in the browser: decision → approve alternative → real PO → supplier queue → accept → buyer notification.
+
+### Deferred, and why
+
+- **§4 onboarding / first-value wizard** — gated behind first login and the ToS gate, i.e. the auth area the user asked to skip. Flagging it explicitly in case that isn't what "the auth thing" meant.
+- **CI workflow, code-splitting (780KB bundle), A4 Trust Dictionary** — none are screens or features; excluded by the user's own framing.
+- **B6 four-component quality score** — a presentation change over a number that already works; lowest value per effort in this pass.
+- **Postgres verification of V11/V12** — Docker still down. `BhiMigrationMatchesEntitiesTest` now also binds V11's four columns, and it provably fails on drift, but that is not the same as applying the migrations.
+
+## UI/UX overhaul — light-first, real icon system, fixed layout shell (2026-08-28)
+
+User asked for a professional pass: light mode as default, no emoji icons, and an end to the
+"vibe-coded" tells — naming the scrolling sidebar specifically. Loaded `frontend-design` and
+`ui-ux-pro-max`, audited all 22 pages, then rebuilt the system rather than retouching pages.
+
+### What the audit found
+
+| Issue | Evidence |
+|---|---|
+| Sidebar scrolled away with the page | `.app-shell{min-height:100vh}` + body scroll; no sticky, no own scroll |
+| Emoji as icons | **103 occurrences, 46 distinct glyphs, 24 files** |
+| Dark default | `getStoredTheme()` returned dark unless explicitly light |
+| Almost no focus system | 1 focus rule in 635 lines; **0** `prefers-reduced-motion` |
+| Table headers scrolled off | no sticky `thead` anywhere |
+| Styling in JSX | 449 inline `style={{}}` — spacing/colour drifted page to page |
+| Dead tokens | 5 gradient KPI tile tokens defined, used nowhere |
+
+### Design direction, and where I overrode the tooling
+
+`ui-ux-pro-max` returned the **Data-Dense Dashboard** pattern (correct) with a blue palette and
+**Fira Code / Fira Sans** typography. I rejected the typography outright — **Fira Code has no
+Arabic coverage**, and this is an Arabic-first RTL product. Kept **IBM Plex Sans Arabic** (already
+loaded, technical, corporate) and added IBM Plex Sans for Latin so data columns get **tabular
+numerals** and actually align.
+
+I also rejected the default blue. Chose **petrol/deep-teal `#0f5257`**:
+- blue-corporate is the generic dashboard look and reads as templated;
+- more importantly, blue was already carrying an *info* semantic. Making it the brand too would
+  have muddied it. Petrol is structural-only (sidebar, primary action, active state, primary data
+  series), which leaves **green and red to mean only opportunity and risk** — the product's two
+  core categories.
+
+In dark mode the brand *lightens* to `#3fa9a4` rather than inverting, so the identity survives
+the theme switch instead of becoming a different colour.
+
+### The layout fix
+
+```
+.app-shell { height: 100dvh; overflow: hidden; }   /* shell never scrolls */
+.sidebar   { height: 100%; overflow-y: auto; }     /* nav scrolls itself */
+.main-area { height: 100%; overflow-y: auto; }     /* content scrolls itself */
+.page-header { position: sticky; top: 0; }         /* screen name stays put */
+```
+
+Verified by scrolling deep into the dashboard: sidebar, active nav item, and the top bar all
+remain. Table `thead` is sticky too. On mobile the sticky header would have slid under the fixed
+menu button (both sit at the RTL start edge), so the button moved to `inset-inline-start` and the
+header gained clearance.
+
+### Icon system
+
+New `src/components/Icon.tsx` wraps **lucide-react** (MIT) behind **semantic** names — `risk`,
+`opportunity`, `liquidity`, `stagnant` — not shape names. If the glyph for "risk" ever changes it
+changes in one file. Uniform 1.5–1.75px stroke, `currentColor` so it follows the theme, and
+`aria-hidden` unless the icon carries meaning no adjacent text repeats.
+
+**103 → 0 emoji icons.** The only remaining glyphs are `★☆` in a rating `<select>`, which is
+deliberate: SVG cannot go inside `<option>`, and those two are monochrome text symbols that
+render consistently.
+
+### Other fixes made along the way
+
+- **KPI/metric cards** were rendering the icon *name as literal text* after the swap — rewrote both
+  to take an `IconName`, and replaced the saturated colour blobs with a tinted glyph so the number
+  stays the loudest thing on the tile.
+- **Decision actions** used three different button styles with icons stacking above labels on two
+  of them. Now one primary (اعتماد), two secondary, and تجاهل pushed to the far end as a quiet
+  ghost above a divider — one clear primary action per card.
+- **Delta arrows** were `▲▼` text glyphs; now icons paired with text, so direction is not conveyed
+  by colour alone.
+- **Health radar** was painted green regardless of the score — colour implying "good" for a value
+  that might be bad. Now brand-neutral; the gauge beside it carries the semantic banding.
+- Login mark's blue→purple gradient replaced with the flat brand; dead `--tile-*` gradients deleted;
+  modal and drawer scrims tokenised.
+
+### Verification
+
+`tsc --noEmit` and `vite build` clean, zero console errors. Checked in-browser: owner dashboard,
+decisions, inventory, admin overview, login, and dark mode. Backend untouched — 153/153 still green.
+
+### Not done in this pass
+
+- The **449 inline `style={{}}`** are still inline. The token layer now governs colour and spacing,
+  so drift is contained, but moving them into classes is a separate mechanical pass.
+- Only a **light audit of the remaining pages** (pricing, profitability, reports, sales, group
+  orders) — they inherit the shell, tokens, and icons, but their internal layouts were not
+  individually reworked.

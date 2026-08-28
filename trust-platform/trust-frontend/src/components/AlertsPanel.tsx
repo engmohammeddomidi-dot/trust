@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import type { ExecutiveAlertDto } from '../api/client';
 
 const alertIcon: Record<ExecutiveAlertDto['type'], string> = {
-  GROUP_ORDER: '🤝',
-  LOW_STOCK: '⚠️',
-  SLOW_MOVING: '🐢',
+  GROUP_ORDER: 'groupOrders',
+  LOW_STOCK: 'warning',
+  SLOW_MOVING: 'stagnant',
 };
 
 const alertLink: Record<ExecutiveAlertDto['type'], string> = {

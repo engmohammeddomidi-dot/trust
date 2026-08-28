@@ -31,7 +31,7 @@ public class GoalController {
     public List<GoalDto> list(@RequestParam Long organizationId, @AuthenticationPrincipal AuthenticatedUser principal) {
         accessGuard.requireOrganization(principal, organizationId);
         return goalService.resolveForOrganization(organizationId).entrySet().stream()
-                .map(e -> new GoalDto(e.getKey().name(), e.getValue()))
+                .map(e -> toDto(e.getKey(), e.getValue()))
                 .toList();
     }
 
@@ -50,7 +50,12 @@ public class GoalController {
             priorities.put(type, req.priority());
         }
         return goalService.updateAll(organizationId, priorities).entrySet().stream()
-                .map(e -> new GoalDto(e.getKey().name(), e.getValue()))
+                .map(e -> toDto(e.getKey(), e.getValue()))
                 .toList();
+    }
+
+    private static GoalDto toDto(Goal.Type type, int priority) {
+        return new GoalDto(type.name(), type.getLabelAr(), type.getPillar().name(),
+                type.getPillar().getLabelAr(), priority, type.influencesEngine());
     }
 }

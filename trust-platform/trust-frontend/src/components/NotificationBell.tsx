@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchNotifications, fetchUnreadNotificationCount, markNotificationRead, type NotificationDto } from '../api/client';
+import { Icon } from './Icon';
 
 const severityColor: Record<string, string> = {
   INFO: 'var(--accent-blue)',
@@ -41,15 +42,12 @@ export function NotificationBell() {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
+        className="notification-bell-btn"
         onClick={toggleOpen}
-        style={{
-          background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
-          width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, cursor: 'pointer', position: 'relative', color: 'var(--text-primary)',
-        }}
-        aria-label="التنبيهات"
+        aria-label={unreadCount > 0 ? `التنبيهات، ${unreadCount} غير مقروءة` : 'التنبيهات'}
+        aria-expanded={open}
       >
-        🔔
+        <Icon name="notifications" size={17} />
         {unreadCount > 0 && (
           <span style={{
             position: 'absolute', top: -4, insetInlineStart: -4, background: 'var(--accent-red)', color: 'white',

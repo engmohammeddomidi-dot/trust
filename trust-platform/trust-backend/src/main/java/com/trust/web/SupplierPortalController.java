@@ -10,9 +10,12 @@ import com.trust.repository.UserRepository;
 import com.trust.web.dto.SupplierPortalOverviewDto;
 import com.trust.web.dto.SupplierPortalPurchaseDto;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.trust.service.SupplierPortalService;
+import com.trust.web.dto.SupplierOrderActionDto;
+import com.trust.web.dto.SupplierOrderResponseRequest;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 import java.util.List;
 import java.util.Map;
@@ -31,12 +34,42 @@ public class SupplierPortalController {
     private final SupplierRepository supplierRepository;
     private final PurchaseRepository purchaseRepository;
     private final UserRepository userRepository;
+    private final SupplierPortalService portalService;
 
     public SupplierPortalController(SupplierRepository supplierRepository, PurchaseRepository purchaseRepository,
-                                     UserRepository userRepository) {
+                                     UserRepository userRepository, SupplierPortalService portalService) {
         this.supplierRepository = supplierRepository;
         this.purchaseRepository = purchaseRepository;
         this.userRepository = userRepository;
+        this.portalService = portalService;
+    }
+
+    /**
+     * قبول أمر شراء. يسجّل التزام المورّد ويُخطر المؤسسة المشترية، ولا يغيّر حالة
+     * الأمر - تبقى SENT حتى يؤكّد المشتري الاستلام فعليًا.
+     */
+    @PatchMapping("/orders/{purchaseId}/accept")
+    public SupplierOrderActionDto accept(@PathVariable Long purchaseId,
+                                         @RequestBody(required = false) SupplierOrderResponseRequest request,
+                                         @AuthenticationPrincipal AuthenticatedUser principal) {
+        LocalDate promised = request != null && request.promisedDate() != null
+                ? LocalDate.parse(request.promisedDate()) : null;
+        Purchase saved = portalService.accept(purchaseId, principal.email(), promised);
+        return toActionDto(saved);
+    }
+
+    @PatchMapping("/orders/{purchaseId}/reject")
+    public SupplierOrderActionDto reject(@PathVariable Long purchaseId,
+                                         @RequestBody(required = false) SupplierOrderResponseRequest request,
+                                         @AuthenticationPrincipal AuthenticatedUser principal) {
+        Purchase saved = portalService.reject(purchaseId, principal.email(),
+                request != null ? request.reason() : null);
+        return toActionDto(saved);
+    }
+
+    private static SupplierOrderActionDto toActionDto(Purchase p) {
+        return new SupplierOrderActionDto(p.getId(), p.getSupplierResponse().name(),
+                p.getSupplierRespondedAt(), p.getSupplierPromisedDate(), p.getSupplierRejectionReason());
     }
 
     @GetMapping("/overview")
@@ -86,7 +119,10 @@ public class SupplierPortalController {
                             p.getStatus().name(),
                             p.getPurchaseDate(),
                             p.getPurchaseDate().plusDays(supplier.getLeadTimeDays()),
-                            p.getReceivedDate());
+                            p.getReceivedDate(),
+                            p.getSupplierResponse().name(),
+                            p.getSupplierPromisedDate(),
+                            p.getSupplierRejectionReason());
                 })
                 .toList();
 

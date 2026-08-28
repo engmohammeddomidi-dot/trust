@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { applyRecommendation, dismissRecommendation, fetchRecommendations, regenerateRecommendations, type RecommendationDto } from '../api/client';
 import { requireBranchId } from '../auth/session';
+import { Icon } from '../components/Icon';
 
 type StatusFilter = 'OPEN' | 'APPLIED' | 'DISMISSED' | 'ALL';
 
@@ -14,11 +15,11 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
 
 const priorityLabel: Record<string, string> = { HIGH: 'عالية', MEDIUM: 'متوسطة', LOW: 'منخفضة' };
 const typeIcon: Record<string, string> = {
-  STOP_PURCHASE: '📦',
-  INCREASE_ORDER: '📈',
-  ADJUST_PRICE: '🏷️',
-  PROMOTION_CAMPAIGN: '📣',
-  LIQUIDITY_ALERT: '💧',
+  STOP_PURCHASE: 'item',
+  INCREASE_ORDER: 'opportunity',
+  ADJUST_PRICE: 'pricing',
+  PROMOTION_CAMPAIGN: 'pricing',
+  LIQUIDITY_ALERT: 'liquidity',
   EXPIRY_ALERT: '⏰',
 };
 const statusChipLabel: Record<string, string> = { OPEN: 'مفتوحة', APPLIED: 'مطبّقة', DISMISSED: 'متجاهَلة' };
@@ -67,7 +68,7 @@ export function NotificationsPage() {
         <div className="page-header">
           <div className="page-title">التنبيهات والتوصيات</div>
           <button className="btn-primary" onClick={handleGenerate} disabled={generating}>
-            {generating ? 'جارِ التوليد...' : '🔄 توليد التوصيات الآن'}
+            {generating ? 'جارِ التوليد...' : 'توليد التوصيات الآن'}
           </button>
         </div>
 
@@ -94,7 +95,7 @@ export function NotificationsPage() {
               <span className="rec-title">{rec.title}</span>
               <span className={`status-chip ${statusChipClass[rec.status]}`}>{statusChipLabel[rec.status]}</span>
               <span className="rec-value">
-                {typeIcon[rec.type] ?? '💡'} {Math.round(rec.expectedValue).toLocaleString('ar')} شيكل
+                {typeIcon[rec.type] ?? 'info'} {Math.round(rec.expectedValue).toLocaleString('ar')} شيكل
               </span>
               {rec.status === 'OPEN' && (
                 <>
@@ -103,17 +104,13 @@ export function NotificationsPage() {
                     title="تطبيق"
                     disabled={busyId === rec.id}
                     onClick={() => handle('apply', rec.id)}
-                  >
-                    ✓
-                  </button>
+                  ><Icon name="approve" /></button>
                   <button
                     className="rec-action rec-action-dismiss"
                     title="تجاهل"
                     disabled={busyId === rec.id}
                     onClick={() => handle('dismiss', rec.id)}
-                  >
-                    ✕
-                  </button>
+                  ><Icon name="close" /></button>
                 </>
               )}
             </div>
